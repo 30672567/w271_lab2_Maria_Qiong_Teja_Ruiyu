@@ -15,6 +15,7 @@ library(tidyverse)
 library(patchwork) 
 
 library(lubridate)
+library(datasets)
 
 library(tsibble)
 library(feasts)
@@ -25,6 +26,7 @@ library(lmtest)
 library(ggfortify)
 library(nycflights13)
 library(blsR)
+library(ggplot2)
 ```
 
 ```{r set themes}
@@ -45,6 +47,128 @@ Introduce the question to your audience. Suppose that they _could_ be interested
 
 ## (3 points) Task 1a: CO2 data
 Conduct a comprehensive Exploratory Data Analysis on the `co2` series. This should include (without being limited to) a [description of how, where and why ](https://gml.noaa.gov/ccgg/about/co2_measurements.html) the data is generated, a thorough investigation of the trend, seasonal and irregular elements. Trends both in levels and growth rates should be discussed (consider expressing longer-run growth rates as annualized averages).
+
+```{r}
+# Load the CO2 dataset
+data("co2")
+
+# View the structure of the CO2 dataset
+str(co2)
+
+# Create a dataframe with co2 and date columns
+co2_df <- data.frame(co2)
+dates <- seq(as.Date("1959-01-01"), by = "month", length.out = length(co2))
+
+# Format the dates to extract the month and year in "YYYY-MM" format
+co2_df$monthyear <- format(dates, "%Y-%m")
+
+# Convert to ts series
+co2_df <- co2_df %>% 
+  mutate(time_index = yearmonth(monthyear)) %>% # convert the date to year-month format
+  as_tsibble(index = time_index) # create time series 
+
+head(co2_df)
+```
+```{r, fig.width = 7, fig.height = 5, fig.align = 'center', warning = F}
+# Time plot
+timeplot_co2 <- co2_df %>%
+  ggplot() +
+  aes(x=time_index, y=co2) +
+  geom_line() +
+  labs(
+    title = "Monthly Mean CO_2",
+    x = "Month and Year",
+    y = "CO_2 Parts per Million"
+  )
+
+# Histogram
+hist_co2 <- co2_df %>%
+  ggplot() +
+  geom_histogram(aes(x = co2)) +
+  labs(
+    title = "Histogram of CO_2",
+    x = "CO_2 Parts per Million"
+  ) +
+  theme(legend.position = c(.2, .8))
+
+# ACF Plot
+acf_co2 <- co2_df%>%
+  ACF(y=co2) %>%
+  autoplot()
+
+# PACF Plot
+pacf_co2 <- co2_df %>%
+  ACF(y=co2, type = "partial") %>%
+  autoplot() +
+  labs(y = "PACF")
+
+(timeplot_co2 + hist_co2) /
+  (acf_co2 + pacf_co2)
+```
+**Interpretation**:\
+We observed strong and persistent trend and seasonality in monthly mean CO_2. The ACF plots fails to converge to 0. The histogram is not strongly skewed and we can observe the linear trend in the time plot, so we think log transformation is not necessary in this case.
+```{r, fig.width = 7, fig.height = 5, fig.align = 'center', warning = F}
+# First differencing of co2
+timeplot_co2_1d <- co2_df %>%
+  ggplot() +
+  aes(x=time_index, y=difference(co2)) +
+  geom_line() +
+  labs(
+    title = "1st Diff Monthly Mean CO_2",
+    x = "Time Index",
+    y = "1st Diff of Monthly Mean CO_2"
+  )
+
+# First differencing histogram
+hist_co2_1d <- co2_df %>%
+  ggplot() +
+  geom_histogram(aes(x = difference(co2))) +
+  labs(
+    title = "1st Diff CO_2 Histogram",
+    x = "1st Diff CO_2"
+  ) +
+  theme(legend.position = c(.2, .8))
+
+# First differencing ACF
+acf_co2_1d <- co2_df %>%
+  ACF(y=difference(co2)) %>%
+  autoplot()
+
+# First differencing PACF
+pacf_co2_1d <- co2_df %>%
+  ACF(y=difference(co2), type = "partial") %>%
+  autoplot()
+
+(timeplot_co2_1d + hist_co2_1d) /
+  (acf_co2_1d + pacf_co2_1d)
+```
+**Interpretation**:\
+The time plot of the first differencing of monthly CO_2 indicates strong seasonality, which is further verified by the periodic oscillations in ACF plot. 
+```{r, fig.width = 7, fig.height = 5, fig.align = 'center', warning = F}
+
+dcmp_co2 <- decompose(co2)
+dcmp_co2_1d <- decompose(diff(co2))
+
+plot(dcmp_co2)
+plot(dcmp_co2_1d)
+```
+**Interpretation**:\
+Since the magnitude of the seasonal fluctuations, or the variation around the trend-cycle, does not vary with the level of the time series, we applied the additive decomposition.\
+Based on the decomposition plot, we found:\
+1) The trend of monthly mean CO_2 is linear.\
+2) The seasonal fluctuations of monthly mean CO_2 does not change with the level of the time series.\
+3) The level of the first-differencing monthly mean CO_2 does not vary much over time.
+```{r, fig.width = 7, fig.height = 5, fig.align = 'center', warning = F}
+co2_df$trend <- dcmp_co2$trend
+co2_df %>%
+autoplot(co2, color = "grey") +
+geom_line(data = co2_df, 
+          aes(x = time_index, y = trend, color = "Trend"))+
+  labs(title = expression(Trend~of~Monthly~Mean~CO[2]), 
+       y = "CO2 Parts per Million",
+       x = "Month and Year")
+```
+
 
 What you report in the deliverable should not be your own process of discovery, but rather a guided discussion that you have constructed so that your audience can come to an understanding as succinctly and successfully as possible. This means that figures should be thoughtfully constructed and what you learn from them should be discussed in text; to the extent that there is _any_ raw output from your analysis, you should intend for people to read and interpret it, and you should write your own interpretation as well. 
 
