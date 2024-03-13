@@ -45,6 +45,19 @@ Introduce the question to your audience. Suppose that they _could_ be interested
 - [First Publication](./background/keeling_tellus_1960.pdf)
 - [Autobiography of Keeling](./background/keeling_annual_review.pdf)
 
+### The Keeling Curve
+In the late 1950's, Charles Keeling initiated groundbreaking scientific endeavor, systematically measuring atmospheric carbon dioxide (CO2) levels in Mauna Loa, Hawaii (1). This work unveiled a striking pattern in the CO2 data, contradictory to the previous publications pointing to high variability (1)(2). Now known as the Keeling Curve, these findings have become an important reference in climate science.
+
+### Analyzing Trends in CO2 data and Significance
+Our analysis is centered on the critical question: *What trends can be identified in the CO2 data up to 1998, and what do they indicate about global environmental changes?* By examining the atmospheric concentrations of CO2 (parts per million (ppm)) collected at Mauna Loa, we aim to investigate the seasonal fluctuations in CO2 levels and the long term trend of increasing concentrations. Understanding this dynamic is important to discover insights into the natural cycles that regulate our planet's climate system and observe human impacts due to increase in fossil fuel and agriculture (2).  
+
+### Aims and Implications of the Analysis
+We aim to uncover the detailed patterns of CO2 variations and their correlation with both natural phenomena and anthropogenic factors. These findings will contribute a deeper understanding of CO2 impacts on Earth while potentially serving as a foundation for further studies and policy making. As we currently scrutinize the rising global temperatures and other various impacts of climate change, unveiling the story told by the Keeling Curve is not simply an observation of our past but a lens into our future.
+
+Reference Numbers (To move to the end later): 
+(1) Autobiography of Keeling
+(2) First Publication
+
 ## (3 points) Task 1a: CO2 data
 Conduct a comprehensive Exploratory Data Analysis on the `co2` series. This should include (without being limited to) a [description of how, where and why ](https://gml.noaa.gov/ccgg/about/co2_measurements.html) the data is generated, a thorough investigation of the trend, seasonal and irregular elements. Trends both in levels and growth rates should be discussed (consider expressing longer-run growth rates as annualized averages).
 
