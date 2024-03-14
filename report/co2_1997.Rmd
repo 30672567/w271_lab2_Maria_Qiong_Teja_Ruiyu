@@ -283,13 +283,15 @@ co2_df %>%
   model(ARIMA(co2 ~ 1 + pdq(1:10,1:2,1:10) + PDQ(0:10,0:10,0:10), ic="bic", stepwise=F, greedy=F)) %>%report()
   
 ```
-The optimal model based on pre-defined criteria is ARIMA(3,1,1)(0,0,2), which has non-seasonal lags for both MA(1) and AR(3) and seasonal lags for MA(1,2) model, which is close to what we guess and observed before. The histogram of residual shows close to normal distribution. However, the acf plot of residual shows significant lags and seasonality. The Ljung Box test also showed that the we can reject the null hypothesis and the data are independently distributed and residual have some serial correlation over time and violate the assumptions for stationary time series. 
+The optimal model based on pre-defined criteria is ARIMA(3,1,1)(0,0,2), which has non-seasonal lags for both MA(1) and AR(3) and seasonal lags for MA(1,2) model, which is close to what we guess and observed before. 
 
-```{r residual}
+Then we use residual to check the model fitness. The Figure 9 shows that the histogram of residual close to normal distribution. However, the acf plot of residual shows significant lags and seasonality. The Ljung Box test also showed that the we can reject the null hypothesis and the data are not independently distributed and residual have some serial correlation over time and violate the assumptions for stationary time series. 
+
+```{r original model residual}
 
 co2_fit<-co2_df%>%model(arima_fit=ARIMA(co2~1+pdq(3,1,1)+PDQ(0,0,2), ic="bic", stepwise=F, greedy=F))
 
-co2_fit%>% gg_tsresiduals()
+co2_fit%>% gg_tsresiduals()+ labs(title = "Figure 9 Original Model Residual")
 
 co2_fit%>%resid()%>%
   as.ts()%>%
@@ -301,27 +303,27 @@ Since we are looking at the month data and the linear model section already prov
 co2_df%>%model(arima_fit=ARIMA(co2~0+pdq(3,1,1)+PDQ(0,1,2), ic="bic", stepwise=F, greedy=F))%>%report()
 ```
 
-The BIC is much lower than the orginal model. We will check the residual again for model fitness. The acf plot has only 1 significant lag and the histogram distribution close to normal. The Ljung Box test showed that we failed to reject the null hypothesis and the residual is independnetly and randomly distributed, indicating good fitness.
+The BIC of revised model is much lower than the original model. We will check the residual again for model fitness. The Figure 10 shows that the acf plot has only 1 significant lag and the histogram distribution close to normal. The Ljung Box test showed that we failed to reject the null hypothesis and the residual is independently and randomly distributed, indicating good fitness.
 
 ```{r}
 co2_fit2<-co2_df%>%model(arima_fit=ARIMA(co2~0+pdq(3,1,1)+PDQ(0,1,2), ic="bic", stepwise=F, greedy=F))
 
-co2_fit2%>% gg_tsresiduals()
+co2_fit2%>% gg_tsresiduals()+ labs(title = "Figure 10 Revised Model Residual")
 
 co2_fit2%>%resid()%>%
   as.ts()%>%
   Box.test(., lag=10, type="Ljung-Box")
 ```
-In forecase, we used both original model and revised model to forecast. It looks like both model capture the general increasing trend of co2. But the revised model also captured the fluctuation and seasonality within predicting period.
+In forecase, we used both original model and revised model to forecast. It looks like both model capture the general increasing trend of co2. But the revised model(Figure 12) also captured the fluctuation and seasonality within entire predicting period, while the original model(Figure 11) only capture the fluctuation in recent predicitng period.
 ```{r forecast}
 co2_fit%>%
   forecast(h=300)%>%
-  autoplot()+ labs(title = "Figure 9 Original Model Forecast")
+  autoplot()+ labs(title = "Figure 11 Original Model Forecast")
 
 
 co2_fit2%>%
   forecast(h=300)%>%
-  autoplot()+ labs(title = "Figure 10 Revised Model Forecast")
+  autoplot()+ labs(title = "Figure 12 Revised Model Forecast")
 ```
 ## (3 points) Task 4a: Forecast atmospheric CO2 growth 
 
