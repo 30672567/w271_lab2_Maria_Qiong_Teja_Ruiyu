@@ -27,6 +27,15 @@ library(ggfortify)
 library(nycflights13)
 library(blsR)
 library(ggplot2)
+
+## Forecasting Models for Tidy Time Series
+library(fable)
+## To assemble multiple plots
+library(gridExtra)
+## for simulations 
+library(simts)
+## To use TeX() to write expression in the title of plots
+library(latex2exp)
 ```
 
 ```{r set themes}
@@ -119,7 +128,16 @@ pacf_co2 <- co2_df %>%
   (acf_co2 + pacf_co2)
 ```
 **Interpretation**:\
-We observed strong and persistent trend and seasonality in monthly mean CO_2. The ACF plots fails to converge to 0. The histogram is not strongly skewed and we can observe the linear trend in the time plot, so we think log transformation is not necessary in this case.
+We observed strong and persistent trend and seasonality in monthly mean CO_2. The ACF plots fails to converge to 0 and decay very slowly. The first lag of PACF is 1, suggesting that co2 has a unit root. The histogram is not strongly skewed and we can observe the linear trend in the time plot, so we think log transformation is not necessary in this case.
+
+```{r kpss}
+co2_df%>%
+  mutate(diff_co2=difference(co2))%>%
+  features(diff_co2, unitroot_kpss)
+```
+**Interpretation**:\
+We used KPSS unit root test to find out the stationarity of difference of co2. The null hypothesis of KPSS is that the series is stationary. In the test, the first difference of co2 has p-value of 0.1, which is larger than 0.05, we fail to reject the null hypothesis of stationary and conclude that only one difference is required to make the co2 stationary.
+
 ```{r, fig.width = 7, fig.height = 5, fig.align = 'center', warning = F}
 # First differencing of co2
 timeplot_co2_1d <- co2_df %>%
@@ -156,7 +174,8 @@ pacf_co2_1d <- co2_df %>%
   (acf_co2_1d + pacf_co2_1d)
 ```
 **Interpretation**:\
-The time plot of the first differencing of monthly CO_2 indicates strong seasonality, which is further verified by the periodic oscillations in ACF plot. 
+The time plot of the first differencing of monthly CO_2 indicates strong seasonality, which is further verified by the periodic oscillations in ACF plot. The ACF also suggests there are lag for non-seasonal MA since first lags are significant and lag of seasonal MA. The PACF suggests there are non-seasonal AR lags and maybe seasonal AR lags, but it is not clear.
+  
 ```{r, fig.width = 7, fig.height = 5, fig.align = 'center', warning = F}
 
 dcmp_co2 <- decompose(co2)
@@ -183,16 +202,127 @@ geom_line(data = co2_df,
 ```
 
 
-What you report in the deliverable should not be your own process of discovery, but rather a guided discussion that you have constructed so that your audience can come to an understanding as succinctly and successfully as possible. This means that figures should be thoughtfully constructed and what you learn from them should be discussed in text; to the extent that there is _any_ raw output from your analysis, you should intend for people to read and interpret it, and you should write your own interpretation as well. 
+
+
 
 ## (3 points) Task 2a: Linear time trend model
 
 Fit a linear time trend model to the `co2` series, and examine the characteristics of the residuals. Compare this to a quadratic time trend model. Discuss whether a logarithmic transformation of the data would be appropriate. Fit a polynomial time trend model that incorporates seasonal dummy variables, and use this model to generate forecasts to the year 2020. 
 
+We will first begin to decompose the data into a linear trend to see how well we are able to fit the data with just a linear time trend.
+```{r}
+
+mod.linear <- co2_df %>%
+  model(trend_model = TSLM(co2 ~ trend()))
+
+mod.quad <- co2_df %>%
+  model(trend_model = TSLM(co2 ~ trend() + I(trend()^2)))
+
+mod.linear %>% gg_tsresiduals() + labs(title="Figure 3 Linear Model Residuals")
+
+```
+
+```{r}
+mod.quad %>% gg_tsresiduals() + labs(title="Figure 4 Quadratic Model Residuals")
+```
+
+After fitting the quadratic model, we can see that the residuals in Figure 4 compared to the residuals in Figure 3 are more stationary. We can also see in the that the histogram in Figure 4 looks more normal than Figure 3. The quadratic model seems to fit the data better than the linear model. However, there is still seasonality in the ACF that needs to be addressed. We will also take a look at additive and multiplicative decomposition to see if using the log of CO2 concentration will help in fitting the data.
+
+```{r fig.width=10, fig.height=5, fig.align="center", warning=FALSE}
+
+co2_df <- co2_df %>%
+  mutate(log_co2 = log(co2))
+
+dcmp_add <- co2_df %>%
+  model(add = classical_decomposition(co2, type = "additive")) 
+
+dcmp_multi <- co2_df %>%
+  model(stl = STL(log_co2))
+
+p33 <- components(dcmp_add) %>% autoplot() + labs("Figure 5 Classical Decomposition")
+
+p34<- components(dcmp_add) %>%
+  ACF(random) %>%
+  autoplot() + labs(title="Residuals additive decomposition")
+
+p35 <- components(dcmp_multi) %>% autoplot() + labs("Figure 6 STL Decomposition")
+
+p36<- components(dcmp_multi)%>%
+  ACF(remainder) %>%
+  autoplot() + labs(title="Residuals of multiplicative decomposition")
+
+grid.arrange(p33,p34,p35 ,p36, nrow = 2, ncol = 2)
+
+```
+
+When comparing at the residuals in Figure 5 (additive decomposition) and Figure 6 (multiplicative decomposition), we can looking at he ACFs that the residuals are less pronounced when we use multiplicative decomposition. Therefore by logging the values of CO2 we are able to better capture any non linear relationships that we have in our data. Next we will fit polynomial time trend model that incorporates seasonal dummy variables to capture the seasonality of the data. We will also be using the log of CO2 in our model.
+
+```{r}
+mod.quad_season <- co2_df %>%
+  model(trend_model = TSLM(log_co2 ~ trend()+I(trend()^2)+ season())) 
+mod.quad_season %>% gg_tsresiduals() + labs(title="Figure 7 Polynomial and Seasonal Dummy Variables Model Residuals")
+```
+
+Based on Figure 7, we can see that the seasonal dummy variables have done a much better job capturing the seasonality in our data than our previous models. The ACF shows no instance of seasonality. Based on the scale of the residuals, we can see that our data is better captured by the seasonal dummy variable, as the scales in the graph of the residuals is much smaller than the scale in Figures 3 and 4. Although we are capturing the data better, we do not have white noise as the correlations in the ACF as we increase the lag still seem to be significant. Next we will forecast using this model.
+
+```{r}
+mod.quad_season.predictions <- new_data(co2_df, n = 300)
+
+mod.quad_season %>%
+  forecast(new_data = mod.quad_season.predictions) %>%
+  autoplot(co2_df) + labs(title = "Figure 8 Linear time trend model Forecast")
+```
+
 ## (3 points) Task 3a: ARIMA times series model 
 
 Following all appropriate steps, choose an ARIMA model to fit to the series. Discuss the characteristics of your model and how you selected between alternative ARIMA specifications. Use your model (or models) to generate forecasts to the year 2022. 
 
+From above sections, we have proved that co2 has 1 unit root and lags in both non-seasonal and seasonal MA and AR models. So, our basic model will search MA(p:1-10) and AR(q: 1-10) with d=1. Also because the time plot of the first differencing of monthly CO_2 indicates strong seasonality, we will include intercept in the model. Then we will use ARIMA() to find out the exact number of lag by searching a set of different possible models, comparing AIC/BIC, and selecting the model with the lowest values.
+```{r ARIMA}
+co2_df %>%
+  model(ARIMA(co2 ~ 1 + pdq(1:10,1:2,1:10) + PDQ(0:10,0:10,0:10), ic="bic", stepwise=F, greedy=F)) %>%report()
+  
+```
+The optimal model based on pre-defined criteria is ARIMA(3,1,1)(0,0,2), which has non-seasonal lags for both MA(1) and AR(3) and seasonal lags for MA(1,2) model, which is close to what we guess and observed before. The histogram of residual shows close to normal distribution. However, the acf plot of residual shows significant lags and seasonality. The Ljung Box test also showed that the we can reject the null hypothesis and the data are independently distributed and residual have some serial correlation over time and violate the assumptions for stationary time series. 
+
+```{r residual}
+
+co2_fit<-co2_df%>%model(arima_fit=ARIMA(co2~1+pdq(3,1,1)+PDQ(0,0,2), ic="bic", stepwise=F, greedy=F))
+
+co2_fit%>% gg_tsresiduals()
+
+co2_fit%>%resid()%>%
+  as.ts()%>%
+  Box.test(., lag=10, type="Ljung-Box")
+
+```
+Since we are looking at the month data and the linear model section already proved that the quadratic term is helpful to predict the trend, we will include higher order polynomial trend and move the intercept.
+```{r revised model}
+co2_df%>%model(arima_fit=ARIMA(co2~0+pdq(3,1,1)+PDQ(0,1,2), ic="bic", stepwise=F, greedy=F))%>%report()
+```
+
+The BIC is much lower than the orginal model. We will check the residual again for model fitness. The acf plot has only 1 significant lag and the histogram distribution close to normal. The Ljung Box test showed that we failed to reject the null hypothesis and the residual is independnetly and randomly distributed, indicating good fitness.
+
+```{r}
+co2_fit2<-co2_df%>%model(arima_fit=ARIMA(co2~0+pdq(3,1,1)+PDQ(0,1,2), ic="bic", stepwise=F, greedy=F))
+
+co2_fit2%>% gg_tsresiduals()
+
+co2_fit2%>%resid()%>%
+  as.ts()%>%
+  Box.test(., lag=10, type="Ljung-Box")
+```
+In forecase, we used both original model and revised model to forecast. It looks like both model capture the general increasing trend of co2. But the revised model also captured the fluctuation and seasonality within predicting period.
+```{r forecast}
+co2_fit%>%
+  forecast(h=300)%>%
+  autoplot()+ labs(title = "Figure 9 Original Model Forecast")
+
+
+co2_fit2%>%
+  forecast(h=300)%>%
+  autoplot()+ labs(title = "Figure 10 Revised Model Forecast")
+```
 ## (3 points) Task 4a: Forecast atmospheric CO2 growth 
 
 Generate predictions for when atmospheric CO2 is expected to be at [420 ppm](https://research.noaa.gov/article/ArtMID/587/ArticleID/2764/Coronavirus-response-barely-slows-rising-carbon-dioxide) and 500 ppm levels for the first and final times (consider prediction intervals as well as point estimates in your answer). Generate a prediction for atmospheric CO2 levels in the year 2100. How confident are you that these will be accurate predictions?
