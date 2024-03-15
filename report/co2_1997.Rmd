@@ -3,6 +3,8 @@ title: "Lab2_Co2_1997"
 author: "Qiong Zhang"
 date: "2024-03-10"
 output: pdf_document
+header-includes:
+   - \usepackage{ulem}
 ---
 
 ```{r setup, include=FALSE, warning=FALSE, message=FALSE, echo=F}
@@ -33,7 +35,6 @@ library(fable)
 ## To assemble multiple plots
 library(gridExtra)
 ## for simulations 
-library(simts)
 ## To use TeX() to write expression in the title of plots
 library(latex2exp)
 ```
@@ -42,7 +43,7 @@ library(latex2exp)
 theme_set(theme_minimal())
 ```
 
-# Report from the Point of View of 1997 
+# Report from the Point of View of 1997
 
 For the first part of this task, suspend reality for a short period of time and conduct your analysis from the point of view of a data scientist doing their work in the early months of 1998. Do this by using data that is included in _every_ R implementation, the `co2` dataset. This dataset is lazily loaded with every R instance, and is stored in an object called `co2`. 
 
@@ -54,13 +55,14 @@ Introduce the question to your audience. Suppose that they _could_ be interested
 - [First Publication](./background/keeling_tellus_1960.pdf)
 - [Autobiography of Keeling](./background/keeling_annual_review.pdf)
 
-### The Keeling Curve
+\begin{center} \textbf{I. Background} \end{center}
+\begin{center} \textit{A. The Keeling Curve} \end{center}
 In the late 1950's, Charles Keeling initiated groundbreaking scientific endeavor, systematically measuring atmospheric carbon dioxide (CO2) levels in Mauna Loa, Hawaii (1). This work unveiled a striking pattern in the CO2 data, contradictory to the previous publications pointing to high variability (1)(2). Now known as the Keeling Curve, these findings have become an important reference in climate science.
 
-### Analyzing Trends in CO2 data and Significance
-Our analysis is centered on the critical question: *What trends can be identified in the CO2 data up to 1998, and what do they indicate about global environmental changes?* By examining the atmospheric concentrations of CO2 (parts per million (ppm)) collected at Mauna Loa, we aim to investigate the seasonal fluctuations in CO2 levels and the long term trend of increasing concentrations. Understanding this dynamic is important to discover insights into the natural cycles that regulate our planet's climate system and observe human impacts due to increase in fossil fuel and agriculture (2).  
+\begin{center} \textit{B. Analyzing Trends in CO2 data and Significance} \end{center}
+Our analysis is centered on the critical question: \textit{What trends can be identified in the CO2 data up to 1998, and what do they indicate about global environmental changes?} By examining the atmospheric concentrations of CO2 (parts per million (ppm)) collected at Mauna Loa, we aim to investigate the seasonal fluctuations in CO2 levels and the long term trend of increasing concentrations. Understanding this dynamic is important to discover insights into the natural cycles that regulate our planet's climate system and observe human impacts due to increase in fossil fuel and agriculture (2).  
 
-### Aims and Implications of the Analysis
+\begin{center} \textit{C. Aims and Implications of the Analysis} \end{center}
 We aim to uncover the detailed patterns of CO2 variations and their correlation with both natural phenomena and anthropogenic factors. These findings will contribute a deeper understanding of CO2 impacts on Earth while potentially serving as a foundation for further studies and policy making. As we currently scrutinize the rising global temperatures and other various impacts of climate change, unveiling the story told by the Keeling Curve is not simply an observation of our past but a lens into our future.
 
 Reference Numbers (To move to the end later): 
@@ -128,7 +130,7 @@ pacf_co2 <- co2_df %>%
   (acf_co2 + pacf_co2)
 ```
 **Interpretation**:\
-We observed strong and persistent trend and seasonality in monthly mean CO_2. The ACF plots fails to converge to 0 and decay very slowly. The first lag of PACF is 1, suggesting that co2 has a unit root. The histogram is not strongly skewed and we can observe the linear trend in the time plot, so we think log transformation is not necessary in this case.
+We observed strong and persistent trend and seasonality in monthly mean CO_2. The ACF plots fails to converge to 0 and decay very slowly, implying a strong persistence of autocorrelation in the time series data and indicative of a non-stationary time series, where the mean, variance, and autocorrelation structure do not remain constant over time. It suggests that past values have a long-lasting effect on future values. The first lag of PACF is 1, suggesting that co2 has a unit root. The histogram is not strongly skewed and we can observe the linear trend in the time plot, so we think log transformation is not necessary in this case.
 
 ```{r kpss}
 co2_df%>%
@@ -177,7 +179,6 @@ pacf_co2_1d <- co2_df %>%
 The time plot of the first differencing of monthly CO_2 indicates strong seasonality, which is further verified by the periodic oscillations in ACF plot. The ACF also suggests there are lag for non-seasonal MA since first lags are significant and lag of seasonal MA. The PACF suggests there are non-seasonal AR lags and maybe seasonal AR lags, but it is not clear.
   
 ```{r, fig.width = 7, fig.height = 5, fig.align = 'center', warning = F}
-
 dcmp_co2 <- decompose(co2)
 dcmp_co2_1d <- decompose(diff(co2))
 
