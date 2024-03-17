@@ -227,16 +227,23 @@ The 5-year moving average growth rate of CO2 levels smooths out the yearly fluct
 # Create a dataframe showing the monthly mean co2
 monthly_mean_co2 <- co2_present[!is.na(co2_present$average), ] %>% 
   group_by(year, month) %>%
-  summarise(co2 = mean(average), monthyear = format(date, "%Y-%m"))
+  index_by(monthyear = yearmonth(time_index)) %>%
+  summarize(co2 = mean(average))
 
-monthly_mean_co2 <- data.frame(monthly_mean_co2)
+# Check the count
+monthly_mean_co2[, c("year", "month")] %>% 
+  group_by(year) %>%
+  summarise(count = n())
 
 # Convert it time series
-monthly_mean_co2<- monthly_mean_co2 %>%
-  mutate(time_index = yearmonth(monthyear), key  = row_number()) %>%
-  as_tsibble(index = time_index, key=key)
+monthly_mean_co2 <- monthly_mean_co2 %>%
+  mutate(time_index = monthyear) %>%
+  as_tsibble(index = time_index) 
 
+#check
 head(monthly_mean_co2)
+frequency(monthly_mean_co2$time_index)
+frequency(monthly_mean_co2)
 
 monthly_mean_co2 %>%
   ggplot() +
@@ -266,6 +273,36 @@ After reflecting on your performance on this threshold-prediction task, continue
 ## (4 points) Task 5b: Train best models on present data
 
 Seasonally adjust the weekly NOAA data, and split both seasonally-adjusted (SA) and non-seasonally-adjusted (NSA) series into training and test sets, using the last two years of observations as the test sets. For both SA and NSA series, fit ARIMA models using all appropriate steps. Measure and discuss how your models perform in-sample and (psuedo-) out-of-sample, comparing candidate models and explaining your choice. In addition, fit a polynomial time-trend model to the seasonally-adjusted series and compare its performance to that of your ARIMA model.
+
+```{r}
+df_test <- monthly_mean_co2 %>%
+  mutate(year = year(time_index),
+         month = month(time_index, label = TRUE))
+
+# Pivot the data to wide format with years as rows and months as columns
+df_test <- df_test %>%
+  pivot_wider(names_from = month, values_from = co2)
+
+# Calculate seasonal factors
+plot(decompose(monthly_mean_co2))
+plot(decompose(co2_present$average))
+
+decompose(monthly_mean_co2)
+
+# Decompose time series using STL decomposition
+decomposition <- stl(monthly_mean_co2$co2, s.window = "periodic")
+
+# Extract seasonal, trend, and remainder components
+seasonal <- decomposition$time.series[, "seasonal"]
+trend <- decomposition$time.series[, "trend"]
+remainder <- decomposition$time.series[, "remainder"]
+
+seasonal_factors <- stl(monthly_mean_co2$co2, s.window = "periodic")$time.series[, "seasonal"]
+
+# Produce non-seasonal adjusted series
+non_seasonal_adjusted_series <- your_seasonal_data - seasonal_factors
+```
+
 
 ## (3 points) Task Part 6b: How bad could it get?
 
