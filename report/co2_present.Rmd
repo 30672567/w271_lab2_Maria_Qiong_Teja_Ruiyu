@@ -25,6 +25,8 @@ library(lmtest)
 library(ggfortify)
 library(nycflights13)
 library(blsR)
+library(dplyr)
+library(ggplot2) 
 ```
 
 ```{r set themes}
@@ -37,19 +39,184 @@ One of the very interesting features of Keeling and colleagues' research is that
 
 ## (1 point) Task 0b: Introduction 
 
-In this introduction, you can assume that your reader will have **just** read your 1997 report. In this introduction, **very** briefly pose the question that you are evaluating, and describe what (if anything) has changed in the data generating process between 1997 and the present. 
+In this introduction, you can assume that your reader will have **just** read your 1997 report. In this introduction, **very** briefly pose the question that you are evaluating, and describe what (if anything) has changed in the data generating process between 1997 and the present.
+
+\begin{center} \textbf{I. Background} \end{center}
+\begin{center} \textit{A. Question at Hand} \end{center}
+Following our 1997 report, we face a critical question: \textit{How accurately have past models predicted the CO2 levels measured since then?} This probes not just the precision of our forecast but also examining whether discrepancies signify model limitations or reflect shifts in the climate system.
+\begin{center} \textit{B. Data Generation Process since 1997} \end{center}
+Since 1997, significant advancements occurred in the data generating process for measuring CO2 levels at the Mauna Loa Observatory. There was an adoption of a new CO2 analyzer in April 2019, employing Cavity Ring-Down Spectroscopy (CRDS) technology, replacing the previous infrared absorption-based analyzer. Calibration methods also evolved, with meticulous control of temperature, pressure, and flow rate, along with frequent calibrations using reference gas mixtures. Furthermore, detailed data selection criteria have been implemented to identify background air, which aimed to eliminate local influences on CO2 measurements (3). In addition to the advancements, there was a disruption in measurements from November 2022 to July 2023 due to the eruption of the Mauna Loa Volcano, during which observations were conducted from the Maunakea Observatories approximately 21 miles north of the Mauna Loa Observatory. However, observations at Mauna Loa resumed in July 2023, ensuring continuity in the long-term CO2 monitoring efforts (4).
+
+Reference, to move later
+(3) https://gml.noaa.gov/ccgg/about/co2_measurements.html
+(4) https://gml.noaa.gov/ccgg/trends/data.html
 
 ## (3 points) Task 1b: Create a modern data pipeline for Mona Loa CO2 data.
 
 The most current data is provided by the United States' National Oceanic and Atmospheric Administration, on a data page [[here](https://gml.noaa.gov/ccgg/trends/data.html)]. Gather the most recent weekly data from this page. (A group that is interested in even more data management might choose to work with the [hourly data](https://gml.noaa.gov/aftp/data/trace_gases/co2/in-situ/surface/mlo/co2_mlo_surface-insitu_1_ccgg_HourlyData.txt).) 
 
-> Mona Loa has volcano eruption, data measurements from Mauna Loa Observatory were suspended as of Nov. 29, 2022. Observations from December 2022 to July 4, 2023 are from a site at the Maunakea Observatories, approximately 21 miles north of the Mauna Loa Observatory. Mauna Loa observations resumed in July 2023
 
 Create a data pipeline that starts by reading from the appropriate URL, and ends by saving an object called `co2_present` that is a suitable time series object. 
-```{r read data}
+```{r Data pipeline and reading data}
 co2_present<-read.csv("https://gml.noaa.gov/webdata/ccgg/trends/co2/co2_weekly_mlo.csv", header=T, sep=",", quote = "\"", dec = ".", fill = TRUE, comment.char = "#")
+co2_present[1:4, ]
+class(co2_present)
 ```
+
+
 Conduct the same EDA on this data. Describe how the Keeling Curve evolved from 1997 to the present, noting where the series seems to be following similar trends to the series that you "evaluated in 1997" and where the series seems to be following different trends. This EDA can use the same, or very similar tools and views as you provided in your 1997 report. 
+
+```{r EDA - dataset manipulation}
+# Create a Date column from year, month, day - duplicates when only monthyear since its weekly data
+co2_present$date <- as.Date(with(co2_present, paste(year, month, day, sep="-")), "%Y-%m-%d")
+co2_present$time_index <- co2_present$date
+
+# Convert to Time Series
+co2_present <- co2_present %>%
+  as_tsibble(index = time_index)
+co2_present[1:5, ]
+
+# Unknown values are indicated as -999.99.
+# Counting number of -999.99 in each column
+counts_NA <- list()
+for (col_name in names(co2_present)) {
+  counts_NA[[col_name]] <- sum(co2_present[[col_name]] == -999.99, na.rm = TRUE)
+}
+df_counts_NA <- as.data.frame(counts_NA, row.names = "Count_of_Neg999.99")
+print(df_counts_NA)
+
+# Mutating -999.99 in all columns to NA 
+co2_present <- co2_present %>%
+  mutate(across(c(average, X1.year.ago, X10.years.ago, increase.since.1800), ~na_if(.x, -999.99)))
+```
+
+```{r EDA - plots, warning = F}
+# Time plot
+timeplot_co2.p <- co2_present %>%
+  ggplot() +
+  aes(x=time_index, y=average) +
+  geom_line() +
+  labs(
+    title = "Weekly Mean CO_2",
+    x = "Time",
+    y = "CO_2 Parts per Million"
+  )
+
+# Histogram
+hist_co2.p <- co2_present %>%
+  ggplot() +
+  geom_histogram(aes(x = average)) +
+  labs(
+    title = "Histogram of CO_2",
+    x = "CO_2 Parts per Million"
+  ) +
+  theme(legend.position = c(.2, .8))
+
+# ACF Plot
+acf_co2.p <- co2_present%>%
+  ACF(y=average) %>%
+  autoplot()
+
+# PACF Plot
+pacf_co2.p <- co2_present %>%
+  ACF(y=average, type = "partial") %>%
+  autoplot() +
+  labs(y = "PACF")
+
+(timeplot_co2.p + hist_co2.p) /
+  (acf_co2.p + pacf_co2.p)
+```
+The plots reveals a persistent upward trend in CO2 levels over time, mirroring findings from the 1997 report and indicating ongoing environmental concerns. Notably, the slow decay in the autocorrelation function suggests a sustained trend effect, while the first lag in the partial autocorrelation function indicates a unit root, highlighting a lack of stationarity in the data. These results are further supported by the KPSS test, which returns a p-value of 0.01, below the 5% threshold, leading to the rejection of the null hypothesis of stationarity. To address this issue, differencing the data was done, resulting in a subsequent KPSS test yielding a p-value of 0.1, indicating the necessity of differencing to achieve stationarity.
+
+```{r EDA - KPSS original data}
+co2_kpss<- co2_present %>%
+  # Have to filter out any NAs before performing the KPSS test
+  filter(!is.na(average)) %>%
+  features(average, unitroot_kpss)
+print(co2_kpss)
+```
+```{r EDA - KPSS differencing data}
+# Differencing the data
+co2_differenced <- co2_present %>%
+  mutate(diff_average = difference(average))
+
+co2_kpss_diff_results <- co2_differenced %>%
+  features(diff_average, unitroot_kpss)
+print(co2_kpss_diff_results)
+```
+```{r EDA - classical decomposition: original and differenced data}
+# Omitting NAs for decomposition
+co2_mod <- co2_present %>%
+  mutate(average = na.approx(average, na.rm = FALSE))
+class(co2_mod)
+print(co2_mod)
+
+# Classical Decomposition
+co2_mod.ts <- ts(co2_mod$average, frequency = 52, start = c(1974, (as.numeric(format(min(co2_mod$date), "%j"))-1)/7 + 1))
+class(co2_mod.ts)
+co2_decomp <- decompose(co2_mod.ts, type = "additive")
+plot(co2_decomp)
+
+# Differenced data
+diff_average_vector <- na.omit(co2_differenced$diff_average)
+diff_average_ts <- ts(diff_average_vector, frequency = 52, start = c(1974, 2))
+# Classical Decomposition
+diff_average_decomp <- decompose(diff_average_ts, type = "additive")
+plot(diff_average_decomp)
+```
+The time series decomposition graphs illustrate the transformation from non-stationary to stationary data. The original dataset depicts an upward trend, signifying non-stationarity, with clear seasonality and considerable random fluctuations. Post differencing, the trend component is neutralized, evidencing stationarity with a consistent mean. The seasonal patterns remain unchanged, indicating their persistence regardless of stationarity. The random component, though still volatile, is now centered around zero without a discernible trend, characterizing the achieved stationarity. 
+
+```{r EDA - STL decomposition}
+# Log transformation to average for STL
+co2_mod <- co2_mod %>%
+  as_tsibble(index = time_index)
+co2_log_transformed <- co2_mod %>%
+  mutate(log_average = log(average))
+
+co2_log_transformed <- co2_log_transformed %>%
+  mutate(time_index = as.Date(time_index)) %>%
+  as_tsibble(index = time_index)
+
+# STL decomposition
+co2_stl <- co2_log_transformed %>%
+  model(STL(log_average ~ season(window = "periodic")))
+co2_components <- components(co2_stl)
+autoplot(co2_components)
+```
+
+
+```{r EDA - 5 year moving average growth rate, warning = F}
+# Calculating the average of the averages by each year
+co2_annual_averages <- co2_present %>%
+  index_by(year = year(time_index)) %>%
+  summarise(annual_average = mean(average, na.rm = TRUE))
+
+# Calculate the percentage growth rate based on the annual averages
+co2_annual_averages <- co2_annual_averages %>%
+  mutate(
+    lag_annual_average = lag(annual_average),  # Lag
+    Percentage_Growth_Rate = (annual_average - lag_annual_average) / lag_annual_average * 100
+  ) %>%
+  filter(!is.na(Percentage_Growth_Rate))
+
+# Moving Average - 5 years
+co2_annual_averages <- co2_annual_averages %>%
+  mutate(
+    Moving_Average_Growth_Rate = rollapply(Percentage_Growth_Rate, width = 5, FUN = mean, fill = NA, align = 'center', na.rm = TRUE)
+  )
+
+co2_growth_plot <- ggplot(co2_annual_averages, aes(x = year, y = Moving_Average_Growth_Rate)) +
+  geom_line(color = "blue", na.rm = TRUE, show.legend = TRUE) +  
+  geom_smooth(method = "loess", se = TRUE, color = "red", fill = 'lightblue', show.legend = TRUE) +  
+  labs(title = "5-Year Moving Average Growth Rate of CO2 Levels",
+       x = "Year",
+       y = "5-Year Moving Avg Growth Rate (%)") +
+  theme_minimal()
+
+print(co2_growth_plot)
+
+```
+The 5-year moving average growth rate of CO2 levels smooths out the yearly fluctuations as shown by the blue line and displays a more consistent and interpretable trend with the red line. It can be obsered that from around 1980 until the early 2000s,the growth rate of CO2 levels increased moderately. However, after the early 2000s, there is a more pronounced upward trend, indicating that the rate at which CO2 is accumulating in the atmosphere has been accelerating.
 
 ## (1 point) Task 2b: Compare linear model forecasts against realized CO2
 
