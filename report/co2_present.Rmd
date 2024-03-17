@@ -225,7 +225,7 @@ The 5-year moving average growth rate of CO2 levels smooths out the yearly fluct
 
 ```{r, create monthly data}
 # Create a dataframe showing the monthly mean co2
-monthly_mean_co2 <- co2_present %>% 
+monthly_mean_co2 <- co2_present[!is.na(co2_present$average), ] %>% 
   group_by(year, month) %>%
   summarise(co2 = mean(average), monthyear = format(date, "%Y-%m"))
 
