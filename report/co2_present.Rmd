@@ -225,7 +225,8 @@ The 5-year moving average growth rate of CO2 levels smooths out the yearly fluct
 
 ```{r, create monthly data}
 # Create a dataframe showing the monthly mean co2
-monthly_mean_co2 <- co2_present[!is.na(co2_present$average), ] %>% 
+monthly_mean_co2 <- co2_present[(!is.na(co2_present$average))
+                                & (co2_present$year>1997), ] %>% 
   group_by(year, month) %>%
   index_by(monthyear = yearmonth(time_index)) %>%
   summarize(co2 = mean(average))
@@ -234,17 +235,19 @@ monthly_mean_co2 <- co2_present[!is.na(co2_present$average), ] %>%
 monthly_mean_co2[, c("year", "month")] %>% 
   group_by(year) %>%
   summarise(count = n())
+colSums(is.na(monthly_mean_co2))
 
 # Convert it time series
 monthly_mean_co2 <- monthly_mean_co2 %>%
   mutate(time_index = monthyear) %>%
   as_tsibble(index = time_index) 
 
-#check
+# Spot check
 head(monthly_mean_co2)
 frequency(monthly_mean_co2$time_index)
 frequency(monthly_mean_co2)
 
+# Time plot
 monthly_mean_co2 %>%
   ggplot() +
   aes(x=time_index, y=co2) +
@@ -254,6 +257,41 @@ monthly_mean_co2 %>%
     x = "Month and Year",
     y = "CO_2 Parts per Million"
   )
+
+```
+
+```{r, decomposition}
+# Decomposition
+co2_stl_monthly <- monthly_mean_co2  %>%
+  model(STL(co2 ~ season(window = "periodic")))
+
+co2_components_monthly <- components(co2_stl_monthly)
+
+co2_mod_monthly.ts <- ts(monthly_mean_co2$co2, frequency = 12)
+class(co2_mod_monthly.ts)
+co2_monthly_decomp <- decompose(co2_mod_monthly.ts, type = "additive")
+plot(co2_monthly_decomp)
+```
+
+```{r, seasonal adjustment}
+monthly_mean_co2$sa_co2 <- monthly_mean_co2$co2 - co2_monthly_decomp$seasonal
+
+# plot nsa vs. sa
+monthly_mean_co2 %>%
+  pivot_longer(cols = c(co2, sa_co2), 
+               names_to = "variable", values_to = "value") %>%
+  ggplot(aes(x = time_index, y = value, color = variable)) +
+  geom_line() +
+  labs(title = "Plot of Seasonally Adjusted CO2 and Non-seasonally Adjusted CO2",
+       x = "Date",
+       y = "CO2 part per million") +
+  scale_color_manual(values = c("blue", "red"), 
+                     labels = c("Non-seasonally Adjusted", "Seasonally Adjusted"))
+```
+```{r, pivot}
+# DELETE THIS CHUNK LATER
+monthly_mean_co2_pivot <- monthly_mean_co2[, c("month", "year", "co2")] %>%
+  pivot_wider(names_from = month, values_from = "co2")
 ```
 
 ## (1 point) Task 2b: Compare linear model forecasts against realized CO2
@@ -274,36 +312,49 @@ After reflecting on your performance on this threshold-prediction task, continue
 
 Seasonally adjust the weekly NOAA data, and split both seasonally-adjusted (SA) and non-seasonally-adjusted (NSA) series into training and test sets, using the last two years of observations as the test sets. For both SA and NSA series, fit ARIMA models using all appropriate steps. Measure and discuss how your models perform in-sample and (psuedo-) out-of-sample, comparing candidate models and explaining your choice. In addition, fit a polynomial time-trend model to the seasonally-adjusted series and compare its performance to that of your ARIMA model.
 
-```{r}
-df_test <- monthly_mean_co2 %>%
-  mutate(year = year(time_index),
-         month = month(time_index, label = TRUE))
+```{r, ARIMA Model}
+# Split original monthly_mean_co2 dataframe to training and testing set
+train_monthly <- subset(monthly_mean_co2, year < 2023)
+test_monthly <- subset(monthly_mean_co2, year >= 2023)
 
-# Pivot the data to wide format with years as rows and months as columns
-df_test <- df_test %>%
-  pivot_wider(names_from = month, values_from = co2)
+# Iterate through different ARIMA models
+##### Non-seasonally adjusted series #####
+model_fit1 <- train_monthly %>%
+  model(model1 = ARIMA(co2 ~ 0 + pdq(0:3,1:2,0:3) + PDQ(0:3,0:1,0:3, period=12), 
+                       ic="bic", stepwise=F, greedy=F))
+model_fit1 %>% report()
+model_fit1 %>% coef()
 
-# Calculate seasonal factors
-plot(decompose(monthly_mean_co2))
-plot(decompose(co2_present$average))
-
-decompose(monthly_mean_co2)
-
-# Decompose time series using STL decomposition
-decomposition <- stl(monthly_mean_co2$co2, s.window = "periodic")
-
-# Extract seasonal, trend, and remainder components
-seasonal <- decomposition$time.series[, "seasonal"]
-trend <- decomposition$time.series[, "trend"]
-remainder <- decomposition$time.series[, "remainder"]
-
-seasonal_factors <- stl(monthly_mean_co2$co2, s.window = "periodic")$time.series[, "seasonal"]
-
-# Produce non-seasonal adjusted series
-non_seasonal_adjusted_series <- your_seasonal_data - seasonal_factors
+##### Seasonally adjusted series #####
+model_fit2 <- train_monthly %>%
+  model(model2 = ARIMA(sa_co2 ~ 0 + pdq(0:3,1:2,0:3) + PDQ(0:3,0:1,0:3, period=12), 
+                       ic="bic", stepwise=F, greedy=F))
+model_fit2 %>% report()
+model_fit2 %>% coef()
 ```
 
+```{r, Polynomial Model}
 
+# Iterate through different Polynomial models
+##### Non-seasonally adjusted series #####
+mod.quad_nsa1 <- train_monthly %>%
+  model(trend_model = TSLM(co2 ~ trend() + I(trend()^2) + season())) 
+mod.quad_nsa1 %>% gg_tsresiduals() + labs(title="Polynomial and Seasonal Dummy Variables Model Residuals")
+
+mod.quad_nsa2 <- train_monthly %>%
+  model(trend_model = TSLM(co2 ~ trend() + I(trend()^2) + I(trend()^3) + season())) 
+mod.quad_nsa2 %>% gg_tsresiduals() + labs(title="Polynomial and Seasonal Dummy Variables Model Residuals")
+
+##### Seasonally adjusted series #####
+mod.quad_sa1 <- train_monthly %>%
+  model(trend_model = TSLM(sa_co2 ~ trend() + I(trend()^2))) 
+mod.quad_sa1 %>% gg_tsresiduals() + labs(title="Polynomial Model Residuals")
+
+mod.quad_nsa2 <- train_monthly %>%
+  model(trend_model = TSLM(sa_co2 ~ trend() + I(trend()^2) + I(trend()^3))) 
+mod.quad_nsa2 %>% gg_tsresiduals() + labs(title="Polynomial Model Residuals")
+
+```
 ## (3 points) Task Part 6b: How bad could it get?
 
 With the non-seasonally adjusted data series, generate predictions for when atmospheric CO2 is expected to be at 420 ppm and 500 ppm levels for the first and final times (consider prediction intervals as well as point estimates in your answer). Generate a prediction for atmospheric CO2 levels in the year 2122. How confident are you that these will be accurate predictions?
