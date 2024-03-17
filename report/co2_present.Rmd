@@ -15,6 +15,7 @@ library(tidyverse)
 library(patchwork) 
 
 library(lubridate)
+library(datasets)
 
 library(tsibble)
 library(feasts)
@@ -25,8 +26,12 @@ library(lmtest)
 library(ggfortify)
 library(nycflights13)
 library(blsR)
-library(dplyr)
-library(ggplot2) 
+library(ggplot2)
+
+## Forecasting Models for Tidy Time Series
+library(fable)
+## To assemble multiple plots
+library(gridExtra)
 ```
 
 ```{r set themes}
@@ -217,6 +222,32 @@ print(co2_growth_plot)
 
 ```
 The 5-year moving average growth rate of CO2 levels smooths out the yearly fluctuations as shown by the blue line and displays a more consistent and interpretable trend with the red line. It can be obsered that from around 1980 until the early 2000s,the growth rate of CO2 levels increased moderately. However, after the early 2000s, there is a more pronounced upward trend, indicating that the rate at which CO2 is accumulating in the atmosphere has been accelerating.
+
+```{r, create monthly data}
+# Create a dataframe showing the monthly mean co2
+monthly_mean_co2 <- co2_present %>% 
+  group_by(year, month) %>%
+  summarise(co2 = mean(average), monthyear = format(date, "%Y-%m"))
+
+monthly_mean_co2 <- data.frame(monthly_mean_co2)
+
+# Convert it time series
+monthly_mean_co2<- monthly_mean_co2 %>%
+  mutate(time_index = yearmonth(monthyear), key  = row_number()) %>%
+  as_tsibble(index = time_index, key=key)
+
+head(monthly_mean_co2)
+
+monthly_mean_co2 %>%
+  ggplot() +
+  aes(x=time_index, y=co2) +
+  geom_line() +
+  labs(
+    title = "Actual Monthly Mean CO_2 after 1997",
+    x = "Month and Year",
+    y = "CO_2 Parts per Million"
+  )
+```
 
 ## (1 point) Task 2b: Compare linear model forecasts against realized CO2
 
