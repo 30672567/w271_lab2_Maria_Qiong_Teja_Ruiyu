@@ -435,7 +435,7 @@ test_monthly <- subset(monthly_mean_co2_df, year >= 2023)
 
 # Iterate through different ARIMA models
 ##### Non-seasonally adjusted series #####
-train_monthly$time_index <- as.Date(train_monthly$time_index, "%Y=%m")
+#train_monthly$time_index <- as.Date(train_monthly$time_index, "%Y=%m")
 model_fit1 <- train_monthly %>%
   model(model1 = ARIMA(co2 ~ 0 + pdq(0:3,1:2,0:3) + PDQ(0:3,0:1,0:3, period=12), 
                        ic="bic", stepwise=F, greedy=F))
