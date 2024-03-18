@@ -131,6 +131,43 @@ pacf_co2.p <- co2_present %>%
 (timeplot_co2.p + hist_co2.p) /
   (acf_co2.p + pacf_co2.p)
 ```
+```{r EDA - plots, warning = F}
+# Time plot
+timeplot_co2_1d.p <- co2_present %>%
+  ggplot() +
+  aes(x=time_index, y=difference(average)) +
+  geom_line() +
+  labs(
+    title = "Weekly Mean First Differenced CO_2",
+    x = "Time",
+    y = "CO_2 Parts per Million"
+  )
+
+# Histogram
+hist_co2_1d.p <- co2_present %>%
+  ggplot() +
+  geom_histogram(aes(x = difference(average))) +
+  labs(
+    title = "Histogram of First Differenced CO_2",
+    x = "CO_2 Parts per Million"
+  ) +
+  theme(legend.position = c(.2, .8))
+
+# ACF Plot
+acf_co2_1d.p <- co2_present%>%
+  ACF(y=difference(average)) %>%
+  autoplot()
+
+# PACF Plot
+pacf_co2_1d.p <- co2_present %>%
+  ACF(y=difference(average), type = "partial") %>%
+  autoplot() +
+  labs(y = "PACF")
+
+(timeplot_co2_1d.p + hist_co2_1d.p) /
+  (acf_co2_1d.p + pacf_co2_1d.p)
+```
+
 The plots reveals a persistent upward trend in CO2 levels over time, mirroring findings from the 1997 report and indicating ongoing environmental concerns. Notably, the slow decay in the autocorrelation function suggests a sustained trend effect, while the first lag in the partial autocorrelation function indicates a unit root, highlighting a lack of stationarity in the data. These results are further supported by the KPSS test, which returns a p-value of 0.01, below the 5% threshold, leading to the rejection of the null hypothesis of stationarity. To address this issue, differencing the data was done, resulting in a subsequent KPSS test yielding a p-value of 0.1, indicating the necessity of differencing to achieve stationarity.
 
 ```{r EDA - KPSS original data}
@@ -237,18 +274,26 @@ monthly_mean_co2[, c("year", "month")] %>%
   summarise(count = n())
 colSums(is.na(monthly_mean_co2))
 
+# Create a tsibble dataframe
+monthly_mean_co2_df <- data.frame(monthyear  = monthly_mean_co2$monthyear, 
+                                  year = monthly_mean_co2$year, 
+                                  month = monthly_mean_co2$month, 
+                                  co2 = monthly_mean_co2$co2)
+
 # Convert it time series
-monthly_mean_co2 <- monthly_mean_co2 %>%
+monthly_mean_co2_df <- monthly_mean_co2_df %>%
   mutate(time_index = monthyear) %>%
   as_tsibble(index = time_index) 
 
+class(monthly_mean_co2_df)
+
 # Spot check
-head(monthly_mean_co2)
-frequency(monthly_mean_co2$time_index)
-frequency(monthly_mean_co2)
+head(monthly_mean_co2_df)
+frequency(monthly_mean_co2_df$time_index)
+frequency(monthly_mean_co2_df)
 
 # Time plot
-monthly_mean_co2 %>%
+monthly_mean_co2_df %>%
   ggplot() +
   aes(x=time_index, y=co2) +
   geom_line() +
@@ -262,22 +307,17 @@ monthly_mean_co2 %>%
 
 ```{r, decomposition}
 # Decomposition
-co2_stl_monthly <- monthly_mean_co2  %>%
-  model(STL(co2 ~ season(window = "periodic")))
-
-co2_components_monthly <- components(co2_stl_monthly)
-
-co2_mod_monthly.ts <- ts(monthly_mean_co2$co2, frequency = 12)
+co2_mod_monthly.ts <- ts(monthly_mean_co2_df$co2, frequency = 12)
 class(co2_mod_monthly.ts)
 co2_monthly_decomp <- decompose(co2_mod_monthly.ts, type = "additive")
 plot(co2_monthly_decomp)
 ```
 
 ```{r, seasonal adjustment}
-monthly_mean_co2$sa_co2 <- monthly_mean_co2$co2 - co2_monthly_decomp$seasonal
+monthly_mean_co2_df$sa_co2 <- monthly_mean_co2_df$co2 - co2_monthly_decomp$seasonal
 
 # plot nsa vs. sa
-monthly_mean_co2 %>%
+monthly_mean_co2_df %>%
   pivot_longer(cols = c(co2, sa_co2), 
                names_to = "variable", values_to = "value") %>%
   ggplot(aes(x = time_index, y = value, color = variable)) +
@@ -288,11 +328,7 @@ monthly_mean_co2 %>%
   scale_color_manual(values = c("blue", "red"), 
                      labels = c("Non-seasonally Adjusted", "Seasonally Adjusted"))
 ```
-```{r, pivot}
-# DELETE THIS CHUNK LATER
-monthly_mean_co2_pivot <- monthly_mean_co2[, c("month", "year", "co2")] %>%
-  pivot_wider(names_from = month, values_from = "co2")
-```
+
 
 ## (1 point) Task 2b: Compare linear model forecasts against realized CO2
 
@@ -312,49 +348,205 @@ After reflecting on your performance on this threshold-prediction task, continue
 
 Seasonally adjust the weekly NOAA data, and split both seasonally-adjusted (SA) and non-seasonally-adjusted (NSA) series into training and test sets, using the last two years of observations as the test sets. For both SA and NSA series, fit ARIMA models using all appropriate steps. Measure and discuss how your models perform in-sample and (psuedo-) out-of-sample, comparing candidate models and explaining your choice. In addition, fit a polynomial time-trend model to the seasonally-adjusted series and compare its performance to that of your ARIMA model.
 
+```{r EDA - plots, monthly_mean_co2_df, non-seasonally adjust, warning = F}
+# Time plot
+timeplot_co2_m.p <- monthly_mean_co2_df %>%
+  ggplot() +
+  aes(x=time_index, y=co2) +
+  geom_line() +
+  labs(
+    title = "Monthly Mean CO_2",
+    x = "Time",
+    y = "CO_2 Parts per Million"
+  )
+
+# Histogram
+hist_co2_m.p <- monthly_mean_co2_df %>%
+  ggplot() +
+  geom_histogram(aes(x = co2)) +
+  labs(
+    title = "Histogram of Monthly CO_2",
+    x = "CO_2 Parts per Million"
+  ) +
+  theme(legend.position = c(.2, .8))
+
+# ACF Plot
+acf_co2_m.p <- monthly_mean_co2_df %>%
+  ACF(y=co2) %>%
+  autoplot()
+
+# PACF Plot
+pacf_co2_m.p <- monthly_mean_co2_df %>%
+  ACF(y=co2, type = "partial") %>%
+  autoplot() +
+  labs(y = "PACF")
+
+(timeplot_co2_m.p + hist_co2_m.p) /
+  (acf_co2_m.p + pacf_co2_m.p)
+```
+```{r EDA - plots, monthly_mean_co2_df, seasonally adjust, warning = F}
+# Time plot
+timeplot_co2_m_sa.p <- monthly_mean_co2_df %>%
+  ggplot() +
+  aes(x=time_index, y=sa_co2) +
+  geom_line() +
+  labs(
+    title = "Monthly Mean of Seasonally Adjusted CO_2",
+    x = "Time",
+    y = "CO_2 Parts per Million"
+  )
+
+# Histogram
+hist_co2_m_sa.p <- monthly_mean_co2_df %>%
+  ggplot() +
+  geom_histogram(aes(x = sa_co2)) +
+  labs(
+    title = "Histogram of Monthly Seasonally Adjsuted CO_2",
+    x = "CO_2 Parts per Million"
+  ) +
+  theme(legend.position = c(.2, .8))
+
+# ACF Plot
+acf_co2_m_sa.p <- monthly_mean_co2_df %>%
+  ACF(y=sa_co2) %>%
+  autoplot()
+
+# PACF Plot
+pacf_co2_m_sa.p <- monthly_mean_co2_df %>%
+  ACF(y=sa_co2, type = "partial") %>%
+  autoplot() +
+  labs(y = "PACF")
+
+(timeplot_co2_m_sa.p + hist_co2_m_sa.p) /
+  (acf_co2_m_sa.p + pacf_co2_m_sa.p)
+```
+```{r, difference of sa_co2}
+monthly_mean_co2_df %>%
+  ACF(y=difference(sa_co2), type = "partial") %>%
+  autoplot() +
+  labs(y = "PACF")
+```
+
+
 ```{r, ARIMA Model}
 # Split original monthly_mean_co2 dataframe to training and testing set
-train_monthly <- subset(monthly_mean_co2, year < 2023)
-test_monthly <- subset(monthly_mean_co2, year >= 2023)
+train_monthly <- subset(monthly_mean_co2_df, year < 2023)
+test_monthly <- subset(monthly_mean_co2_df, year >= 2023)
 
 # Iterate through different ARIMA models
 ##### Non-seasonally adjusted series #####
+train_monthly$time_index <- as.Date(train_monthly$time_index, "%Y=%m")
 model_fit1 <- train_monthly %>%
   model(model1 = ARIMA(co2 ~ 0 + pdq(0:3,1:2,0:3) + PDQ(0:3,0:1,0:3, period=12), 
                        ic="bic", stepwise=F, greedy=F))
 model_fit1 %>% report()
 model_fit1 %>% coef()
 
+# Residual stationary diagnosis
+model_fit1 %>% gg_tsresiduals()+ labs(title = "Model Residual")
+model_fit1 %>% resid() %>%
+  as.ts()%>%
+  Box.test(., lag=10, type="Ljung-Box")
+```
+Based on the EDA of first differencing data, we can observe that the mean of the first differenced $CO_2$ is fluctuated around zero. Thus, we set intercept to be equal 0 and parameter D to range from 1 to 2. The model with minimum BIC is `ARIMA(1,1,1)(2,1,1)[12]`. Although only `ma1` and `sma1` terms are sarcastically significant, based on the time plot and ACF, PACF plots in EDA section, we can observe strong and  persistent non-seasonal and seasonal trend.
+
+The residual plots and KPSS test result suggest that the residuals of the model is stationary.
+
+```{r, forecast for non-seasonally adjusted series}
+model.forecasts1 <- forecast(model_fit1, h=nrow(test_monthly))
+
+# plot
+model.forecasts1 %>%
+  autoplot(colour="cornflowerblue") +
+  autolayer(monthly_mean_co2_df, colour="black", .vars = co2) +
+  geom_line(data=model_fit1 %>% augment(), aes(time_index, .fitted, color=.model)) +
+  labs(title = "model.fit1: ARIMA(1,1,1)(2,1,1)[12]") +
+  facet_wrap(~.model, ncol=1, nrow=3)
+
+# forecast fit
+forecast.fit1 <- model.forecasts1$.mean
+
+# accuracy
+acc1 <- data.frame(accuracy(forecast.fit1, test_monthly$co2))
+acc1
+```
+
+
+```{r}
 ##### Seasonally adjusted series #####
 model_fit2 <- train_monthly %>%
-  model(model2 = ARIMA(sa_co2 ~ 0 + pdq(0:3,1:2,0:3) + PDQ(0:3,0:1,0:3, period=12), 
+  model(model2 = ARIMA(sa_co2 ~ 0 + pdq(0:3,0:2,0:3) + PDQ(0:3,0:1,0:3, period=12), 
                        ic="bic", stepwise=F, greedy=F))
 model_fit2 %>% report()
 model_fit2 %>% coef()
 ```
 
+```{r, forecast for seasonally adjusted series}
+model.forecasts2 <- forecast(model_fit2, h=nrow(test_monthly))
+
+# plot
+model.forecasts2 %>%
+  autoplot(colour="cornflowerblue") +
+  autolayer(monthly_mean_co2_df, colour="black", .vars = sa_co2) +
+  geom_line(data=model_fit2 %>% augment(), aes(time_index, .fitted, color=.model)) +
+  labs(title = "model.fit2: ARIMA(0,1,1)(3,0,0)[12]") +
+  facet_wrap(~.model, ncol=1, nrow=3)
+
+# forecast fit
+forecast.fit2 <- model.forecasts2$.mean
+
+# accuracy
+acc2 <- data.frame(accuracy(forecast.fit2, test_monthly$sa_co2))
+acc2
+```
+
+
 ```{r, Polynomial Model}
 
 # Iterate through different Polynomial models
-##### Non-seasonally adjusted series #####
-mod.quad_nsa1 <- train_monthly %>%
-  model(trend_model = TSLM(co2 ~ trend() + I(trend()^2) + season())) 
-mod.quad_nsa1 %>% gg_tsresiduals() + labs(title="Polynomial and Seasonal Dummy Variables Model Residuals")
-
-mod.quad_nsa2 <- train_monthly %>%
-  model(trend_model = TSLM(co2 ~ trend() + I(trend()^2) + I(trend()^3) + season())) 
-mod.quad_nsa2 %>% gg_tsresiduals() + labs(title="Polynomial and Seasonal Dummy Variables Model Residuals")
-
 ##### Seasonally adjusted series #####
 mod.quad_sa1 <- train_monthly %>%
   model(trend_model = TSLM(sa_co2 ~ trend() + I(trend()^2))) 
-mod.quad_sa1 %>% gg_tsresiduals() + labs(title="Polynomial Model Residuals")
+mod.quad_sa1 %>% gg_tsresiduals() + labs(title="Polynomial Model1's Residuals")
 
-mod.quad_nsa2 <- train_monthly %>%
+fit_acc1 <- accuracy(mod.quad_sa1, type = "fitted")
+
+mod.quad_sa2 <- train_monthly %>%
   model(trend_model = TSLM(sa_co2 ~ trend() + I(trend()^2) + I(trend()^3))) 
-mod.quad_nsa2 %>% gg_tsresiduals() + labs(title="Polynomial Model Residuals")
+mod.quad_nsa2 %>% gg_tsresiduals() + labs(title="Polynomial Model2's Residuals")
 
+fit_acc2 <- accuracy(mod.quad_sa2, type = "fitted")
+
+fit_acc1 
+fit_acc2
 ```
+The training accuracy of polynomial model with order 2 is similar to that of polynomial model with order 3.
+```{r, forecast for non-seasonally adjusted series}
+model.forecasts.poly1 <- forecast(mod.quad_sa1, h=nrow(test_monthly))
+
+# plot
+model.forecasts.poly1 %>%
+  autoplot(colour="cornflowerblue") +
+  autolayer(monthly_mean_co2_df, colour="black", .vars = sa_co2) +
+  geom_line(data=mod.quad_nsa1 %>% augment(), aes(time_index, .fitted, color=.model)) +
+  labs(title = "mod.quad_nsa2: polynomial(x + x^2)") +
+  facet_wrap(~.model, ncol=1, nrow=3)
+
+# forecast fit
+forecast.fit.poly1 <- model.forecasts.poly1$.mean
+
+# accuracy
+acc1.p <- data.frame(accuracy(forecast.fit.poly1, test_monthly$sa_co2))
+acc1.p 
+```
+Polynomial model generates more accurate forecasting results for seasonally adjusted $CO_2$ trend compared to ARIMA.
+```{r}
+acc_df <- rbind(acc1, acc2, acc1.p)
+row.names(acc_df) <- c("NSA ARIMA", "SA ARIMA", 
+                  "SA Polynomial")
+acc_df
+```
+
 ## (3 points) Task Part 6b: How bad could it get?
 
 With the non-seasonally adjusted data series, generate predictions for when atmospheric CO2 is expected to be at 420 ppm and 500 ppm levels for the first and final times (consider prediction intervals as well as point estimates in your answer). Generate a prediction for atmospheric CO2 levels in the year 2122. How confident are you that these will be accurate predictions?
