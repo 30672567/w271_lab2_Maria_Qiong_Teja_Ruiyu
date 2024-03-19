@@ -390,7 +390,7 @@ In 1997 you made predictions about the first time that CO2 would cross 420 ppm. 
 
 After reflecting on your performance on this threshold-prediction task, continue to use the weekly data to generate a month-average series from 1997 to the present, and compare the overall forecasting performance of your models from Parts 2a and 3b over the entire period. (You should conduct formal tests for this task.) 
 
-In linear model, the first time that CO2 cross 420 ppm is 2022 Jan, while in actual data it is 2022 Apr. The ARIMA model did not predict CO2 could cross 420 ppm in 2022. Apparently, linear model is more close to the actual data. The time series plots are used to show the difference between actual minus predicted data. Consistent with above discussion, the linear model tends to over estimate the CO2 and the degree of overestimation tends to increase with the time evolve, while ARIMA model tends to underestimate the CO2 and the degree of underestimation tends to increase with the time evolve. However, ARIMA model has more smooth and consistent underestimation in residual, while linear model's prediction has bigger fluctuation in residual. From the histogram, we can tell that most residual in linear model lie between [-3,-1], while ARIMA model has a bigger range, [0.5,6]. Finally, we use RMSE to test the gap between predicted and observed values. The results show that linear model has smaller gap (2.14) than ARIMA model(8.09), indicating better model fit.
+In linear model, the first time that CO2 cross 420 ppm is 2022 Jan, while in actual data it is 2022 Apr. The ARIMA model did not predict CO2 could cross 420 ppm in 2022. Apparently, linear model is more close to the actual data. The time series plots are used to show the difference between actual minus predicted data. Consistent with above discussion, the linear model tends to over estimate the CO2 and the degree of overestimation tends to increase with the time evolve, while ARIMA model tends to underestimate the CO2 and the degree of underestimation tends to increase with the time evolve. However, ARIMA model has more smooth and consistent underestimation in residual, while linear model's prediction has bigger fluctuation in residual. From the histogram, we can tell that most residual in linear model lie between [-3,-1], while ARIMA model has a bigger range, [0.5,6]. Finally, we use accuracy function to test the gap between predicted and observed values. The results show that linear model has smaller gap (RMSE=2.14) than ARIMA model(RMSE=8.09), indicating better model fit.
 
 ```{r forecast evaluation,fig.width = 12, fig.height = 4, fig.align = 'center', warning = F}
 linear_predict_df<-mod.quad_season %>%
@@ -456,12 +456,12 @@ hist_arima_diff <- comps2 %>%
 (hist_linear_diff/
     hist_arima_diff)
 
-#RMSE to compare the performance of two models
+#Accuracy to compare the performance of two models
 
-Linear_RMSE=sqrt(mean((comps$co2.x - comps$linear_co2)^2))
-Linear_RMSE
-ARIMA_RMSE=sqrt(mean((comps$co2.x - comps$arima_co2)^2))
-ARIMA_RMSE
+data.frame(Model=c("Linear Model Accurarcy","ARIMA Model Accurarcy"),
+           rbind(accuracy(comps2$linear_co2, comps2$co2.x),
+           accuracy(comps2$arima_co2, comps2$co2.x)))
+
 
 ```
 
