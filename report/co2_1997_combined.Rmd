@@ -16,7 +16,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
-```{r load packages, message=FALSE, warning=FALSE}
+```{r load packages, message=FALSE, warning=FALSE,include=F, echo = FALSE}
 library(tidyverse)
 library(patchwork) 
 
@@ -43,40 +43,31 @@ library(gridExtra)
 library(latex2exp)
 ```
 
-```{r set themes}
+```{r set themes,include=F, echo = FALSE}
 theme_set(theme_minimal())
 ```
 
-# Report from the Point of View of 1997
+#Introduction 
 
-For the first part of this task, suspend reality for a short period of time and conduct your analysis from the point of view of a data scientist doing their work in the early months of 1998. Do this by using data that is included in _every_ R implementation, the `co2` dataset. This dataset is lazily loaded with every R instance, and is stored in an object called `co2`. 
-
-## (3 points) Task 0a: Introduction 
-
-Introduce the question to your audience. Suppose that they _could_ be interested in the question, but they don't have a deep background in the area. What is the question that you are addressing, why is it worth addressing, and what are you going to find at the completion of your analysis. Here are a few resource that you might use to start this motivation. 
-
-- [Wikipedia](https://en.wikipedia.org/wiki/Keeling_Curve)
-- [First Publication](./background/keeling_tellus_1960.pdf)
-- [Autobiography of Keeling](./background/keeling_annual_review.pdf)
-
-\begin{center} \textbf{I. Background} \end{center}
-\begin{center} \textit{A. The Keeling Curve} \end{center}
 In the late 1950's, Charles Keeling initiated groundbreaking scientific endeavor, systematically measuring atmospheric carbon dioxide (CO2) levels in Mauna Loa, Hawaii (1). This work unveiled a striking pattern in the CO2 data, contradictory to the previous publications pointing to high variability (1)(2). Now known as the Keeling Curve, these findings have become an important reference in climate science.
 
-\begin{center} \textit{B. Analyzing Trends in CO2 data and Significance} \end{center}
+
 Our analysis is centered on the critical question: \textit{What trends can be identified in the CO2 data up to 1998, and what do they indicate about global environmental changes?} By examining the atmospheric concentrations of CO2 (parts per million (ppm)) collected at Mauna Loa, we aim to investigate the seasonal fluctuations in CO2 levels and the long term trend of increasing concentrations. Understanding this dynamic is important to discover insights into the natural cycles that regulate our planet's climate system and observe human impacts due to increase in fossil fuel and agriculture (2).  
 
-\begin{center} \textit{C. Aims and Implications of the Analysis} \end{center}
+
 We aim to uncover the detailed patterns of CO2 variations and their correlation with both natural phenomena and anthropogenic factors. These findings will contribute a deeper understanding of CO2 impacts on Earth while potentially serving as a foundation for further studies and policy making. As we currently scrutinize the rising global temperatures and other various impacts of climate change, unveiling the story told by the Keeling Curve is not simply an observation of our past but a lens into our future.
 
 Reference Numbers (To move to the end later): 
 (1) Autobiography of Keeling
 (2) First Publication
 
-## (3 points) Task 1a: CO2 data
+# Data and Measurement
 Conduct a comprehensive Exploratory Data Analysis on the `co2` series. This should include (without being limited to) a [description of how, where and why ](https://gml.noaa.gov/ccgg/about/co2_measurements.html) the data is generated, a thorough investigation of the trend, seasonal and irregular elements. Trends both in levels and growth rates should be discussed (consider expressing longer-run growth rates as annualized averages).
 
-```{r}
+In this project, we will use two parts of data. The first part of data is CO2 data in R "co2" package.
+
+
+```{r,include=F, echo = FALSE}
 # Load the CO2 dataset
 data("co2")
 
@@ -99,7 +90,14 @@ head(co2_df)
 frequency(co2_df)
 frequency(co2_df$time_index)
 ```
-```{r, fig.width = 7, fig.height = 5, fig.align = 'center', warning = F, include=F}
+
+# CO2 before 1997
+
+We plot the time series of co2 data before 1997(Figure 1). The charts reflects a robust and consistent trend as well as seasonality within the monthly mean $CO_2$ data. Notably, the ACF plot demonstrated a lack of convergence to zero and exhibited slow decay, indicating pronounced autocorrelation persistence within the time series. This pattern suggests non-stationarity, wherein the mean, variance, and autocorrelation structure do not maintain constancy over time, implying that past values exert a lasting influence on future values. Furthermore, the first lag of the PACF yielded a value of 1, indicating the presence of a unit root within the $CO_2$ series. Additionally, the histogram is slightly skewed and a log transformation may be necessary. 
+
+**Figure 1. 1997 CO2. **\
+
+```{r, fig.width = 7, fig.height = 5, fig.align = 'center', warning = F, echo = FALSE}
 # Time plot
 timeplot_co2 <- co2_df %>%
   ggplot() +
@@ -135,17 +133,18 @@ pacf_co2 <- co2_df %>%
 (timeplot_co2 + hist_co2) /
   (acf_co2 + pacf_co2)
 ```
-The charts above reflects a robust and consistent trend as well as seasonality within the monthly mean $CO_2$ data. Notably, the ACF plot demonstrated a lack of convergence to zero and exhibited slow decay, indicating pronounced autocorrelation persistence within the time series. This pattern suggests non-stationarity, wherein the mean, variance, and autocorrelation structure do not maintain constancy over time, implying that past values exert a lasting influence on future values. Furthermore, the first lag of the PACF yielded a value of 1, indicating the presence of a unit root within the $CO_2$ series. Additionally, the histogram is slightly skewed and a log transformation may be necessary
-### interpret the result of KPSS test
-```{r kpss, include=F, echo = FALSE}
+
+Then we plot the first differencing 1997 co2 data to check the stationarity(Figure 2). The time plot of the first difference of monthly $CO_2$ indicates strong seasonality, supported by periodic oscillations in the ACF plot. Significant lags for non-seasonal MA terms are observed, along with potential indications of seasonal MA terms. The PACF suggests the presence of non-seasonal and seasonal AR lags. We also performed a KPSS unit root test to statistically assess the stationarity of the first difference of $CO_2$. The null hypothesis of the KPSS test posits that the series is stationary. Our test results revealed a p-value of 0.1, greater than the conventional significance level of 0.05. Consequently, we fail to reject the null hypothesis of stationarity, leading the conclusion that the first differencing can achieve stationarity in the $CO_2$ series.
+
+**Figure 2. 1997 CO2 First Difference. **\
+
+```{r, first diff kpss, include=F, echo = FALSE}
 co2_df%>%
   mutate(diff_co2=difference(co2))%>%
   features(diff_co2, unitroot_kpss)
 ```
-We performed a KPSS unit root test to assess the stationarity of the first difference of $CO_2$. The null hypothesis of the KPSS test posits that the series is stationary. Our test results revealed a p-value of 0.1, greater than the conventional significance level of 0.05. Consequently, we fail to reject the null hypothesis of stationarity, leading the conclusion that the first differencing can achieve stationarity in the $CO_2$ series.
 
-COMMENT: 1~2 to interpret the plots i.e. seasonality/ACF/PACF
-```{r, fig.width = 7, fig.height = 5, fig.align = 'center', warning = F, include=F, echo = FALSE}
+```{r, first diff, fig.width = 7, fig.height = 5, fig.align = 'center', warning = F, include=T, echo = FALSE}
 # First differencing of co2
 timeplot_co2_1d <- co2_df %>%
   ggplot() +
@@ -180,17 +179,26 @@ pacf_co2_1d <- co2_df %>%
 (timeplot_co2_1d + hist_co2_1d) /
   (acf_co2_1d + pacf_co2_1d)
 ```
-The time plot of the first difference of monthly $CO_2$ indicates strong seasonality, supported by periodic oscillations in the ACF plot. Significant lags for non-seasonal MA terms are observed, along with potential indications of seasonal MA terms. The PACF suggests the presence of non-seasonal and seasonal AR lags.
-```{r, fig.width = 7, fig.height = 5, fig.align = 'center', warning = F, include=F, echo = FALSE}
+```{r, first diff kpss, include=F, echo = FALSE}
+co2_df%>%
+  mutate(diff_co2=difference(co2))%>%
+  features(diff_co2, unitroot_kpss)
+```
+
+To understand co2, we also conducted composition analysis. Based on the decomposition plot (Figure 3), we observed a linear trend in the monthly mean CO₂, along with stable seasonal fluctuations that do not vary with the level of the time series. Additionally, the level of the first-differencing of monthly mean CO₂ demonstrates relatively consistent variation over time.
+
+**Figure 3. 1997 CO2 Decomposition. **\
+
+COMMENT:change the writting
+```{r, decomposition, fig.width = 7, fig.height = 5, fig.align = 'center', warning = F, include=T, echo = FALSE}
 dcmp_co2 <- decompose(co2)
 dcmp_co2_1d <- decompose(diff(co2))
 
 plot(dcmp_co2)
 plot(dcmp_co2_1d)
 ```
-Based on the decomposition plot, we observed a linear trend in the monthly mean CO₂, along with stable seasonal fluctuations that do not vary with the level of the time series. Additionally, the level of the first-differencing of monthly mean CO₂ demonstrates relatively consistent variation over time.
-COMMENT:change the writting
-```{r, fig.width = 7, fig.height = 5, fig.align = 'center', warning = F, include=F, echo = FALSE}
+
+```{r, fig.width = 7, fig.height = 5, fig.align = 'center', warning = F, include=T, echo = FALSE}
 co2_df$trend <- dcmp_co2$trend
 co2_df %>%
 autoplot(co2, color = "grey") +
@@ -235,8 +243,7 @@ co2_growth_rate_pct | co2_growth_rate_log
 The percentage and logarithm annual growth rates of $CO_2$ levels are quite similar. We can observe that although the annual growth rate is below 0.8% which seems minimal, it does increase overtime with larger fluctuation.
 
 
-
-## (3 points) Task 2a: Linear time trend model
+## Linear time trend model
 
 Fit a linear time trend model to the `co2` series, and examine the characteristics of the residuals. Compare this to a quadratic time trend model. Discuss whether a logarithmic transformation of the data would be appropriate. Fit a polynomial time trend model that incorporates seasonal dummy variables, and use this model to generate forecasts to the year 2020. 
 
@@ -326,12 +333,12 @@ mod.quad_season %>%
   forecast(new_data = mod.quad_season.predictions) %>%
   autoplot(co2_df) + labs(title = "Figure 8 Linear time trend model Forecast")
 ```
-## (3 points) Task 3a: ARIMA times series model 
 
-Following all appropriate steps, choose an ARIMA model to fit to the series. Discuss the characteristics of your model and how you selected between alternative ARIMA specifications. Use your model (or models) to generate forecasts to the year 2022. 
+## ARIMA times series model 
 
-From above sections, we have proved that co2 has 1 unit root and lags in both non-seasonal and seasonal MA and AR models. So, our basic model will search MA(p:0-3) and AR(q: 0-3) with d=1. The EDA of the first differencing of $CO_2$ indicates that the first differenced $CO_2$ data has strong seasonality while doesn't have persistent and obvious trend. The ACF further verified the yearly seasonality as the autocorrelation peaks at lag 12 and 24. Thus, we tested different ARIMA models below. Then we will use ARIMA() to find out the exact number of lag by searching a set of different possible models, comparing AIC/BIC, and selecting the model with the lowest values. We noticed that the model without intercept has much lower BIC than the model with intercept.
-```{r, include=F, echo = FALSE}
+From above sections, we have proved that co2 has 1 unit root and lags in both non-seasonal and seasonal MA and AR models. So, our basic model will search MA(p:0-3) and AR(q: 0-3) with d=1. The EDA of the first differencing of $CO_2$ indicates that the first differenced $CO_2$ data has strong seasonality while doesn't have persistent and obvious trend. The ACF further verified the yearly seasonality as the autocorrelation peaks at lag 12 and 24. Thus, we tested different ARIMA models below. We will use ARIMA() to find out the exact number of lag by searching a set of different possible models, comparing AIC/BIC, and selecting the model with the lowest values. The optimal model based on pre-defined criteria is ARIMA(0,1,1)(1,1,2), which has non-seasonal and seasonal difference 1,seasonal lag for AR(1), non-seasonal and seasonal lag for  MA(1,2) model, which is close to what we guess and observed before. We noticed that the model without intercept has much lower BIC(201.78) than the model with intercept(692.46). 
+
+```{r, include=T, echo = FALSE}
 # no intercept
 co2_df %>%
   model(ARIMA(co2 ~ 0 + pdq(0:3,1:2,0:3) + PDQ(0:3,0:1,0:3, period=12), ic="bic", stepwise=F, greedy=F)) %>%report()
@@ -339,11 +346,10 @@ co2_df %>%
 co2_df %>%
   model(ARIMA(co2 ~ 1 + pdq(0:3,1:2,0:3) + PDQ(0:3,0:1,0:3, period=12), ic="bic", stepwise=F, greedy=F)) %>%report()
 ```
-The optimal model based on pre-defined criteria is ARIMA(0,1,1)(1,1,2), which has non-seasonal and seasonal difference 1,seasonal lag for AR(1), non-seasonal and seasonal lag for  MA(1,2) model, which is close to what we guess and observed before. 
 
-Then we use residual to check the model fitness. The Figure 9 shows that the histogram of residual close to normal distribution. The acf plot of residual shows most lags within the limit with only 2 significant lags. The Ljung Box test also showed that the we cannot reject the null hypothesis (p=0.1441) and the data are independently distributed and residual does not have serial correlation over time and stationary. 
+Then we use residual to check the model fitness. The Figure 9 shows that the histogram of residual close to normal distribution. The acf plot of residual shows most lags within the limit with only 2 significant lags. The Ljung Box test also proved that the we cannot reject the null hypothesis (p=0.1441) and the data are independently distributed and residual does not have serial correlation over time and stationary. 
 
-```{r original model residual, include=FALSE}
+```{r original model residual, include=T,echo=FALSE}
 
 co2_fit<-co2_df%>%model(arima_fit=ARIMA(co2~pdq(0,1,1)+PDQ(1,1,2, period=12), ic="bic", stepwise=F, greedy=F))
 
@@ -356,17 +362,21 @@ co2_fit%>%resid()%>%
   Box.test(., lag=10, type="Ljung-Box")
 ```
 
-In forecast, it looks like our model capture the general increasing trend of co2 as well as the seasonality within entire predicting period (Figure 11).
-```{r forecast, fig.width = 7, fig.height = 4, fig.align = 'center', warning = F}
+In next section, we will demonstrate the predicted data to 2022 by using selected ARIMA model.
+
+
+## Forecast atmospheric CO2 growth 
+
+### Forecast to 2022 with advanced linear model and ARIMA model.
+COMMENT: add forecasting results for linear model, quadratic, arima in a single plot in different colors
+
+In ARIMA forecast, it looks like the model captures the general increasing trend of co2 as well as the seasonality within entire predicting period (Figure 11).
+```{r ARIMA forecast, fig.width = 7, fig.height = 4, fig.align = 'center', warning = F, echo=FALSE}
 co2_fit%>%
   forecast(h=300)%>%
   autoplot()+ labs(title = "Figure 11 ARIMA Model Forecast")
 ```
 
-
-## (3 points) Task 4a: Forecast atmospheric CO2 growth 
-
-COMMENT: add forecasting results for linear model, quadratic, arima in a single plot in different colors
 
 Generate predictions for when atmospheric CO2 is expected to be at [420 ppm](https://research.noaa.gov/article/ArtMID/587/ArticleID/2764/Coronavirus-response-barely-slows-rising-carbon-dioxide) and 500 ppm levels for the first and final times (consider prediction intervals as well as point estimates in your answer). Generate a prediction for atmospheric CO2 levels in the year 2100. How confident are you that these will be accurate predictions?
 
@@ -438,7 +448,7 @@ The point prediction of $CO_2$ levels in year 2100 ranges from 521.1 to 517.2. T
 
 One of the very interesting features of Keeling and colleagues' research is that they were able to evaluate, and re-evaluate the data as new series of measurements were released. This permitted the evaluation of previous models' performance and a much more difficult question: If their models' predictions were "off" was this the result of a failure of the model, or a change in the system? 
 
-## (1 point) Task 0b: Introduction 
+## Introduction 
 
 In this introduction, you can assume that your reader will have **just** read your 1997 report. In this introduction, **very** briefly pose the question that you are evaluating, and describe what (if anything) has changed in the data generating process between 1997 and the present.
 
@@ -726,14 +736,11 @@ monthly_mean_co2_df %>%
 ```
 
 
-## (1 point) Task 2b: Compare linear model forecasts against realized CO2
-
-Descriptively compare realized atmospheric CO2 levels to those predicted by your forecast from a linear time model in 1997 (i.e. "Task 2a"). (You do not need to run any formal tests for this task.) 
-
+## Compare linear model forecasts against realized CO2
 The actual monthly mean CO2 levels has a systematic increasing trend and regular fluctuations in fixed time period, indicating consistent growth and seasonality. The decomposition further proved its non-stationarity, increasing trend, and seasonality. In previous sections, we used linear model with quadratic term and season to capture the increasing rate and seasonality and predict the CO2 till 2022 Dec. The figure shows that the peak of 2020 is slightly below 6.05, while the peak of 2022 is over 6.05. In actual data plot, we can found that the peak of 2020 is around 6.03, while th peak of 2022 still below 6.05. Therefore, we can say the linear model was able to predict the seasonality in the predicted data but the systematic increasing trend was slightly over estimated, indicating higher slope coefficient in predicted trend than the actual trend of realized atmospheric CO2 data.  
 
 
-```{r,fig.width = 12, fig.height = 4, fig.align = 'center', warning = F}
+```{r,fig.width = 12, fig.height = 4, fig.align = 'center', warning = F, echo=FALSE}
 actual<-monthly_mean_co2_df %>%
   pivot_longer(cols = c(co2, sa_co2), 
                names_to = "variable", values_to = "value") %>%
@@ -755,13 +762,10 @@ linear_predict<-mod.quad_season %>%
 linear_predict | actual 
 ```
 
-## (1 point) Task 3b: Compare ARIMA models forecasts against realized CO2  
-
-Descriptively compare realized atmospheric CO2 levels to those predicted by your forecast from the ARIMA model that you fitted in 1997 (i.e. "Task 3a"). Describe how the Keeling Curve evolved from 1997 to the present. 
-
+## Compare ARIMA models forecasts against realized CO2  
 The ARIMA model we obtained in previous sections predicts that the CO2 will have a steady increasing trend with period fluctuation. However, contrary to linear model, the ARIMA model seems underestimate the CO2 increase by predicting the the peak of 2020 is slightly over 400, while the peak of 2022 is around 405. In actual data plot, we can found that the peak of 2020 is much over 410 even approaching 420 and the peak of 2022 is over 420. Therefore, we can say the ARIMA model was able to predict the seasonality and increasing trend in the predicted data but the trend is underestiamte, indicating lower slope coefficient in predicted trend than the actual trend of realized atmospheric CO2 data.  
 
-```{r forecast, fig.width = 12, fig.height = 4, fig.align = 'center', warning = F}
+```{r forecast, fig.width = 12, fig.height = 4, fig.align = 'center', warning = F, echo=FALSE}
 ARIMA<-co2_fit%>%
   forecast(h=300)%>%
   autoplot()+ labs(title = "Figure 11 ARIMA Model Forecast")
@@ -780,15 +784,10 @@ actual<-monthly_mean_co2_df %>%
 ARIMA | actual 
 ```
 
-## (3 points) Task 4b: Evaluate the performance of 1997 linear and ARIMA models 
-
-In 1997 you made predictions about the first time that CO2 would cross 420 ppm. How close were your models to the truth? 
-
-After reflecting on your performance on this threshold-prediction task, continue to use the weekly data to generate a month-average series from 1997 to the present, and compare the overall forecasting performance of your models from Parts 2a and 3b over the entire period. (You should conduct formal tests for this task.) 
-
+## Evaluate the performance of 1997 linear and ARIMA models 
 In linear model, the first time that CO2 cross 420 ppm is 2022 Jan, while in actual data it is 2022 Apr. The ARIMA model did not predict CO2 could cross 420 ppm in 2022. Apparently, linear model is more close to the actual data. The time series plots are used to show the difference between actual minus predicted data. Consistent with above discussion, the linear model tends to over estimate the CO2 and the degree of overestimation tends to increase with the time evolve, while ARIMA model tends to underestimate the CO2 and the degree of underestimation tends to increase with the time evolve. However, ARIMA model has more smooth and consistent underestimation in residual, while linear model's prediction has bigger fluctuation in residual. From the histogram, we can tell that most residual in linear model lie between [-3,-1], while ARIMA model has a bigger range, [0.5,6]. Finally, we use accuracy function to test the gap between predicted and observed values. The results show that linear model has smaller gap (RMSE=2.14) than ARIMA model(RMSE=8.09), indicating better model fit.
 
-```{r forecast evaluation,fig.width = 12, fig.height = 4, fig.align = 'center', warning = F}
+```{r forecast evaluation,fig.width = 12, fig.height = 4, fig.align = 'center', warning = F, echo=F}
 linear_predict_df<-mod.quad_season %>%
   forecast(new_data = mod.quad_season.predictions)%>%
   mutate(linear_co2=exp(.mean))
