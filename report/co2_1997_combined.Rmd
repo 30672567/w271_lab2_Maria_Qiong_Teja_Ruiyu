@@ -382,12 +382,40 @@ Generate predictions for when atmospheric CO2 is expected to be at [420 ppm](htt
 
 ```{r}
 # Generate forecast till end of 2100
-co2_fit.forecast <- co2_fit %>% forecast(h=1236)
+co2_fit.forecast <- co2_fit %>% forecast(h=1236) 
+mod.quad_season.forecast <- mod.quad_season %>% forecast(h=1236) 
+mod.linear_season.forecast <- mod.linear_season %>% forecast(h=1236) 
 
-# Plot the forecasting results
-co2_fit.forecast %>%
-  autoplot()+ labs(title = "Figure 10 Final Model Forecast")
+arima.forecast.plot <- autoplot(co2_fit.forecast, prediction.interval = TRUE, show.legend = TRUE) +
+  labs(title = "ARIMA Model Forecasts", 
+       x = "Year and Month", 
+       y = "ARIMA Forecasted CO2(ppm)") +
+  geom_hline(yintercept = 420, linetype = "dashed", color = "blue") +
+  geom_hline(yintercept = 500, linetype = "dashed", color = "blue") 
+  
+quad.forecast.plot <- autoplot(mod.quad_season.forecast, series = "Quad Season", 
+                               prediction.interval = TRUE, fill = "green", show.legend = TRUE) +
+  labs(title = "Quadratic Model Forecasts", 
+       x = "Year and Month", 
+       y = "Log of CO2(ppm)") +
+  geom_hline(yintercept = log(420), linetype = "dashed", color = "green") +
+  geom_hline(yintercept = log(500), linetype = "dashed", color = "green") 
+
+linear.forecast.plot <- autoplot(mod.linear_season.forecast, series = "Linear Season", 
+                                 prediction.interval = TRUE, fill = "orange", show.legend = TRUE) +
+  labs(title = "Linear Model Forecasts", 
+       x = "Year and Month", 
+       y = "Linear Forecasted CO2(ppm)") +
+  geom_hline(yintercept = 420, linetype = "dashed", color = "orange") +
+  geom_hline(yintercept = 500, linetype = "dashed", color = "orange") 
+
+# Combine the plots
+final_plot <- arima.forecast.plot + quad.forecast.plot + linear.forecast.plot
+
+# Show the final plot
+final_plot
 ```
+
 ```{r}
 # Calculate the difference between 420
 co2_fit.forecast$co2_420 <- co2_fit.forecast$.mean - 420
@@ -1083,7 +1111,7 @@ Using a 95% confidence intervals we noted the first and last years that we would
 
 ```{r}
 confidence_intervals <- NSAfit.forecast %>%
-  summarise(.mean, .lower = quantile(.mean, 0.025), .upper = quantile(.mean, 0.975))
+  summarise(.mean, .lower = quantile(co2, 0.025), .upper = quantile(co2, 0.975))
 
 # Extract lower confidence intervals
 lower_confidence_intervals <- confidence_intervals$.lower
