@@ -953,7 +953,11 @@ knitr::include_graphics("models.evaluation.png")
 ```{=tex}
 \begin{center} \textit{E. Training Models on Present Data} \end{center}
 ```
-To train the models on present data, the weekly NOAA data was seasonally adjusted and split into both seasonally-adjusted (SA) and non-seasonally-adjusted (NSA) series into training and test sets, using the last two years of observations as the test sets. For both SA and NSA series, ARIMA models were fitted. Based on the EDA of first differencing data, we can observe that the mean of the first differenced $CO_2$ is fluctuated around zero. Thus, we set intercept to be equal 0 and parameter D to range from 1 to 2. The model with minimum BIC is `ARIMA(1,1,1)(2,1,1)[12]`. Although only `ma1` and `sma1` terms are sarcastically significant, based on the time plot and ACF, PACF plots in EDA section, we can observe strong and persistent non-seasonal and seasonal trend. The residual plots and KPSS test result suggest that the residuals of the model is stationary.
+To train the models on present data, the weekly NOAA data was seasonally adjusted and split into both seasonally-adjusted (SA) and non-seasonally-adjusted (NSA) series into training and test sets, using the last two years of observations as the test sets. For both SA and NSA series, ARIMA models were fitted. Based on the EDA of first differencing data, we observed that the mean of the first differenced $CO_2$ is fluctuated around zero. Thus, we set intercept to be equal 0 and parameter D to range from 1 to 2. The model with minimum BIC is `ARIMA(1,1,1)(2,1,1)[12]`. Although only `ma1` and `sma1` terms are sarcastically significant, based on the time plot and ACF, PACF plots in EDA section, we can observe strong and persistent non-seasonal and seasonal trend. The residual plots and KPSS test result suggest that the residuals of the model is stationary.
+
+```{r fig18, echo=FALSE, out.width = '50%', fig.show = 'hold', fig.pos='H', fig.cap=“Model Residuals”}
+knitr::include_graphics("model_fit1.plot.png")
+```
 
 *Choosing which plots/outputs to show from the ARIMA Model*
 
@@ -1038,7 +1042,7 @@ monthly_mean_co2_df %>%
   labs(y = "PACF")
 ```
 
-```{r, ARIMA Model, echo = F}
+```{r, ARIMA Model, include = F, echo = F}
 # Split original monthly_mean_co2 dataframe to training and testing set
 train_monthly <- subset(monthly_mean_co2_df, year < 2023)
 test_monthly <- subset(monthly_mean_co2_df, year >= 2023)
@@ -1053,7 +1057,9 @@ model_fit1 %>% report()
 model_fit1 %>% coef()
 
 # Residual stationary diagnosis
-model_fit1 %>% gg_tsresiduals()+ labs(title = "Model Residual")
+model_fit1.plot <- model_fit1 %>% gg_tsresiduals()+ labs(title = "Model Residual")
+ggsave("model_fit1.plot.png", plot = model_fit1.plot, width = 7, height = 4)
+
 model_fit1 %>% resid() %>%
   as.ts()%>%
   Box.test(., lag=10, type="Ljung-Box")
@@ -1220,7 +1226,7 @@ forecast_df<- data.frame(
 )
 ```
 
-```{r, include=F, echo=F}
+```{r, include=T, echo=F}
 stargazer(forecast_df, type = "text", title = "Forecasted Year and Month CO2 Levels at 420ppm and 500ppm 95% confidence", summary = FALSE)
 ```
 
