@@ -5,7 +5,7 @@ date: "2024-03-10"
 output: pdf_document
 ---
 
-```{r setup, include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+```{r setup, include=FALSE, warning=FALSE, message=FALSE, echo=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
