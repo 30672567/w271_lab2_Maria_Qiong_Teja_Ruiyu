@@ -2,7 +2,6 @@
 title: "combined"
 output:
   pdf_document: default
-  html_document: default
 ---
 
 ---
@@ -73,8 +72,6 @@ Since 1997, significant advancements occurred in the data generating process for
 ```
 As we extend our analysis into the present, our aim is not only to validate past predictions but also contribute to a deeper understanding of $CO_2$ impacts on Earth. This ongoing investigation serves as both a reflection on past observations and a forward-looking lens into future climate scenarios.
 
-Reference Numbers (To move to the end later): (1) Autobiography of Keeling (2) First Publication (3) <https://gml.noaa.gov/ccgg/about/co2_measurements.html> (4) <https://gml.noaa.gov/ccgg/trends/data.html>
-
 ```{=tex}
 \begin{center} \textbf{II. Measurement and Data} \end{center}
 \begin{center} \textit{A. Measuring Atmospheric Carbon} \end{center}
@@ -109,7 +106,7 @@ Percentage growth rate assessment, indicates a steady increase in atmospheric co
 knitr::include_graphics("p.growthrate.png")
 ```
 
-```{r Original Dataset Transformations,include=F}
+```{r 1a.1 Original Dataset Transformations,include=F}
 # Load the CO2 dataset
 data("co2")
 
@@ -133,7 +130,7 @@ frequency(co2_df)
 frequency(co2_df$time_index)
 ```
 
-```{r, fig.width = 7, fig.height = 5, fig.align = 'center', warning = F, include = F, echo = FALSE, message = F}
+```{r 1a.2, fig.width = 7, fig.height = 5, fig.align = 'center', warning = F, include = F, echo = FALSE, message = F}
 # Time plot
 timeplot_co2 <- co2_df %>%
   ggplot() +
@@ -171,13 +168,13 @@ originaltrend.plot <- (timeplot_co2 + hist_co2) /
 ggsave("originaltrend.plot.png", plot = originaltrend.plot, width = 7, height = 4)
 ```
 
-```{r, first diff kpss, include=F}
+```{r, 1a.3 first diff kpss, include=F}
 co2_df%>%
   mutate(diff_co2=difference(co2))%>%
   features(diff_co2, unitroot_kpss)
 ```
 
-```{r, first diff, fig.width = 7, fig.height = 5, fig.align = 'center', warning = F, include=F, echo = FALSE}
+```{r, 1a.4 first diff, fig.width = 7, fig.height = 5, fig.align = 'center', warning = F, include=F, echo = FALSE}
 # First differencing of co2
 timeplot_co2_1d <- co2_df %>%
   ggplot() +
@@ -214,13 +211,13 @@ differenced.plot<- (timeplot_co2_1d + hist_co2_1d) /
 ggsave("differenced.plot.png", plot = differenced.plot, width = 7, height = 4)
 ```
 
-```{r, first diff kpss-1, include=F}
+```{r, 1a.5 first diff kpss-1, include=F}
 co2_df%>%
   mutate(diff_co2=difference(co2))%>%
   features(diff_co2, unitroot_kpss)
 ```
 
-```{r, decomposition1, fig.width = 6, fig.height = 4, fig.align = 'center', warning = F, include = F, message = F}
+```{r, 1a.6 decomposition1, fig.width = 6, fig.height = 4, fig.align = 'center', warning = F, include = F, message = F}
 dcmp_co2 <- decompose(co2)
 dcmp_co2_1d <- decompose(diff(co2))
 png("dcmp_co2_plot.png", width = 350, height = 300)
@@ -232,7 +229,7 @@ dev.off()
 
 ```
 
-```{r, fig.width = 7, fig.height = 5, fig.align = 'center', warning = F, echo = FALSE, message = F, include = F}
+```{r, 1a.7, fig.width = 7, fig.height = 5, fig.align = 'center', warning = F, echo = FALSE, message = F, include = F}
 co2_df$trend <- dcmp_co2$trend
 co2_df %>%
 autoplot(co2, color = "grey") +
@@ -243,7 +240,7 @@ geom_line(data = co2_df,
        x = "Month and Year")
 ```
 
-```{r, fig.width = 7, fig.height = 4, fig.align = 'center', warning = F, message = F, echo = F, include = F}
+```{r 1a.8, fig.width = 7, fig.height = 4, fig.align = 'center', warning = F, message = F, echo = F, include = F}
 co2_df_growth <- co2_df
 co2_df_growth$year <- year(co2_df_growth$time_index)
 
@@ -282,14 +279,14 @@ ggsave("p.growthrate.png", plot = p.growthrate, width = 7, height = 4)
 ```
 When assessing the evolution of the Keeling Curve from 1997 to the present, we continue to observe a pronounced upward trend in CO2 levels, echoing the patterns identified in the earlier data. The ACF and PACF plots display sustained autocorrelation and the presence of a unit root, respectively, consistent with the historical analysis which necessitated differencing to achieve stationarity. The KPSS test corroborates this, with a p-value indicating stationarity in the differenced series. These findings confirm the ongoing influence of human activities on CO2 concentrations, with the percentage growth rate analysis further highlighting a compounding rise in levels, maintaining a rate below 0.8% annually. This persistence of trends and seasonality from the 1997 data to the present underscores the unrelenting trajectory of CO2 accumulation in the atmosphere.
 
-```{r fig5, echo=FALSE, out.width = '55%', fig.show = 'hold', fig.pos='H', fig.cap="Present CO2 and First Differenced"}
+```{r fig5, echo=FALSE, out.width = '53%', fig.show = 'hold', fig.pos='H', fig.cap="Present CO2 and First Differenced"}
 knitr::include_graphics("present.ts.plot.png")
 knitr::include_graphics("present.ts.diff.plot.png")
 ```
 
 The time series decomposition graphs illustrate the transformation from non-stationary to stationary data. The original dataset depicts an upward trend, signifying non-stationarity, with clear seasonality and considerable random fluctuations. Post differencing, the trend component is neutralized, evidencing stationarity with a consistent mean. The seasonal patterns remain unchanged, indicating their persistence regardless of stationarity. The random component, though still volatile, is now centered around zero without a discernible trend, characterizing the achieved stationarity.
 
-```{r Data pipeline and reading data, message = F, include = F, echo=F}
+```{r 1b.1 Data pipeline and reading data, message = F, include = F, echo=F}
 # Website went down 
 co2_present<-read.csv("https://gml.noaa.gov/webdata/ccgg/trends/co2/co2_weekly_mlo.csv", header=T, sep=",", quote = "\"", dec = ".", fill = TRUE, comment.char = "#")
 #co2_present <- read.csv("co2_weekly_mlo.csv", skip = 35, header = TRUE)
@@ -297,7 +294,7 @@ co2_present<-read.csv("https://gml.noaa.gov/webdata/ccgg/trends/co2/co2_weekly_m
 #class(co2_present)
 ```
 
-```{r EDA - dataset manipulation, include = F, echo=F}
+```{r 1b.2 EDA - dataset manipulation, include = F, echo=F}
 # Create a Date column from year, month, day - duplicates when only monthyear since its weekly data
 co2_present$date <- as.Date(with(co2_present, paste(year, month, day, sep="-")), "%Y-%m-%d")
 co2_present$time_index <- co2_present$date
@@ -321,7 +318,7 @@ co2_present <- co2_present %>%
   mutate(across(c(average, X1.year.ago, X10.years.ago, increase.since.1800), ~na_if(.x, -999.99)))
 ```
 
-```{r EDA - plots, warning = F, include = F, echo=F}
+```{r 1b.3 EDA - plots, warning = F, include = F, echo=F}
 # Time plot
 timeplot_co2.p <- co2_present %>%
   ggplot() +
@@ -359,7 +356,7 @@ present.ts.plot <- (timeplot_co2.p + hist_co2.p) /
 ggsave("present.ts.plot.png", plot = present.ts.plot, width = 7, height = 4)
 ```
 
-```{r EDA - plots diff, warning = F, include = F, echo=F}
+```{r 1b.4 EDA - plots diff, warning = F, include = F, echo=F}
 # Time plot
 timeplot_co2_1d.p <- co2_present %>%
   ggplot() +
@@ -397,7 +394,7 @@ present.ts.diff.plot <- (timeplot_co2_1d.p + hist_co2_1d.p) /
 ggsave("present.ts.diff.plot.png", plot = present.ts.diff.plot, width = 7, height = 4)
 ```
 
-```{r EDA - KPSS original data, include = F, echo=F}
+```{r 1b.5 EDA - KPSS original data, include = F, echo=F}
 co2_kpss<- co2_present %>%
   # Have to filter out any NAs before performing the KPSS test
   filter(!is.na(average)) %>%
@@ -405,7 +402,7 @@ co2_kpss<- co2_present %>%
 print(co2_kpss)
 ```
 
-```{r EDA - KPSS differencing data, include= F, echo=F}
+```{r 1b.6 EDA - KPSS differencing data, include= F, echo=F}
 # Differencing the data
 co2_differenced <- co2_present %>%
   mutate(diff_average = difference(average))
@@ -415,7 +412,7 @@ co2_kpss_diff_results <- co2_differenced %>%
 print(co2_kpss_diff_results)
 ```
 
-```{r EDA - classical decomposition: original and differenced data, include = F, echo=F}
+```{r 1b.7 EDA - classical decomposition: original and differenced data, include = F, echo=F}
 # Omitting NAs for decomposition
 co2_mod <- co2_present %>%
   mutate(average = na.approx(average, na.rm = FALSE))
@@ -436,7 +433,7 @@ diff_average_decomp <- decompose(diff_average_ts, type = "additive")
 plot(diff_average_decomp)
 ```
 
-```{r EDA - STL decomposition, include = F, echo=F}
+```{r 1b.8 EDA - STL decomposition, include = F, echo=F}
 # Log transformation to average for STL
 co2_mod <- co2_mod %>%
   as_tsibble(index = time_index)
@@ -454,7 +451,7 @@ co2_components <- components(co2_stl)
 autoplot(co2_components)
 ```
 
-```{r EDA - 5 year moving average growth rate, warning = F, include = F, echo=F}
+```{r 1b.9 EDA - 5 year moving average growth rate, warning = F, include = F, echo=F}
 # Calculating the average of the averages by each year
 co2_annual_averages <- co2_present %>%
   index_by(year = year(time_index)) %>%
@@ -486,7 +483,7 @@ co2_growth_plot
 ggsave("co2_growth_plot.png", plot = co2_growth_plot, width = 7, height = 4)
 ```
 
-```{r, create monthly data, include = F, echo=F}
+```{r 1b.10, create monthly data, include = F, echo=F}
 # Create a dataframe showing the monthly mean co2
 monthly_mean_co2 <- co2_present[(!is.na(co2_present$average))
                                 & (co2_present$year>1997), ] %>% 
@@ -531,7 +528,7 @@ monthly_mean_co2_df %>%
 
 ```
 
-```{r, decomposition, include = F, echo=F}
+```{r 1b.11, decomposition, include = F, echo=F}
 # Decomposition
 co2_mod_monthly.ts <- ts(monthly_mean_co2_df$co2, frequency = 12)
 class(co2_mod_monthly.ts)
@@ -539,7 +536,7 @@ co2_monthly_decomp <- decompose(co2_mod_monthly.ts, type = "additive")
 plot(co2_monthly_decomp)
 ```
 
-```{r, seasonal adjustment, include = F, echo=F}
+```{r 1b.12, seasonal adjustment, include = F, echo=F}
 monthly_mean_co2_df$sa_co2 <- monthly_mean_co2_df$co2 - co2_monthly_decomp$seasonal
 
 # plot nsa vs. sa
@@ -586,7 +583,7 @@ knitr::include_graphics("mod.quad.season.plot.png")
 #knitr::include_graphics("mod.quad.forecast.png")
 ```
 
-```{r, fig.width = 7, fig.height = 4, fig.align = 'center', warning = F, include = F, echo=F}
+```{r 2a.1, fig.width = 7, fig.height = 4, fig.align = 'center', warning = F, include = F, echo=F}
 
 mod.linear <- co2_df %>%
   model(trend_model = TSLM(co2 ~ trend()))
@@ -606,7 +603,7 @@ ggsave("mod.linear.res.plot.png", plot = mod.linear.res.plot, width = 7, height 
 ggsave("mod.quad.res.plot.png", plot = mod.quad.res.plot, width = 7, height = 4)
 ```
 
-```{r fig.width=10, fig.height=5, fig.align="center", warning=FALSE, include = F, echo=F}
+```{r 2a.2, fig.width=10, fig.height=5, fig.align="center", warning=FALSE, include = F, echo=F}
 
 co2_df <- co2_df %>%
   mutate(log_co2 = log(co2))
@@ -634,7 +631,7 @@ decomp.plot <- (p34 + p36)
 ggsave("decomp.plot.png", plot = decomp.plot, width = 7, height = 4)
 ```
 
-```{r Polynomial and Seasonal Dummy Variables Model Residuals, include = F, echo=F}
+```{r 2a.3, Polynomial and Seasonal Dummy Variables Model Residuals, include = F, echo=F}
 mod.quad_season <- co2_df %>%
   model(trend_model = TSLM(log_co2 ~ trend()+I(trend()^2)+ season())) 
 mod.quad.season.plot <- mod.quad_season %>% gg_tsresiduals() + labs(title="Polynomial and Seasonal Dummy Variables Model Residuals")
@@ -642,7 +639,7 @@ mod.quad.season.plot <- mod.quad_season %>% gg_tsresiduals() + labs(title="Polyn
 ggsave("mod.quad.season.plot.png", plot = mod.quad.season.plot, width = 7, height = 4)
 ```
 
-```{r, fig.width = 7, fig.height = 4, fig.align = 'center', warning = F, include=F, echo=F}
+```{r 2a.4, fig.width = 7, fig.height = 4, fig.align = 'center', warning = F, include=F, echo=F}
 mod.linear_season <- co2_df %>%
   model(trend_model = TSLM(co2 ~ trend() + season())) 
 mod.linear_season.aug <- mod.linear_season %>% augment()
@@ -669,7 +666,7 @@ mod.quad_season.aug.plot <- mod.quad_season.aug %>%
 mod.linear_season.aug.plot | mod.quad_season.aug.plot
 ```
 
-```{r, include = F, echo=F}
+```{r 2a.5, include = F, echo=F}
 mod.quad_season.predictions <- new_data(co2_df, n = 300)
 
 mod.quad.forecast <- mod.quad_season %>%
@@ -684,7 +681,7 @@ ggsave("mod.quad.forecast.png", plot = mod.quad.forecast, width = 7, height = 4)
 ```
 From above sections, we have proved that co2 has 1 unit root and lags in both non-seasonal and seasonal MA and AR models. So, our basic model will search MA(p:0-3) and AR(q: 0-3) with d=1. The EDA of the first differencing of $CO_2$ indicates that the first differenced $CO_2$ data has strong seasonality while doesn't have persistent and obvious trend. The ACF further verified the yearly seasonality as the autocorrelation peaks at lag 12 and 24. Thus, we tested different ARIMA models below. We will use ARIMA() to find out the exact number of lag by searching a set of different possible models, comparing AIC/BIC, and selecting the model with the lowest values. The optimal model based on pre-defined criteria is ARIMA(0,1,1)(1,1,2), which has non-seasonal and seasonal difference 1,seasonal lag for AR(1), non-seasonal and seasonal lag for MA(1,2) model, which is close to what we guess and observed before. We noticed that the model without intercept has much lower BIC(201.78) than the model with intercept(692.46).
 
-```{r, include=T, echo = FALSE}
+```{r 3a.1, include=T, echo = FALSE}
 # no intercept
 co2_df %>%
   model(ARIMA(co2 ~ 0 + pdq(0:3,1:2,0:3) + PDQ(0:3,0:1,0:3, period=12), ic="bic", stepwise=F, greedy=F)) %>%report()
@@ -699,7 +696,7 @@ Then we use residual to check the model fitness. The Figure 11 shows that the hi
 knitr::include_graphics("co2_fit.plot.png")
 ```
 
-```{r original model residual, include=F, echo=F}
+```{r 3a.2 original model residual, include=F, echo=F}
 
 co2_fit<-co2_df%>%model(arima_fit=ARIMA(co2~pdq(0,1,1)+PDQ(1,1,2, period=12), ic="bic", stepwise=F, greedy=F))
 
@@ -707,7 +704,7 @@ co2_fit.plot <- co2_fit%>% gg_tsresiduals()+ labs(title = "Model Residual")
 ggsave("co2_fit.plot.png", plot = co2_fit.plot, width = 7, height = 4)
 ```
 
-```{r, include=FALSE, echo=FALSE}
+```{r 3a.3, include=FALSE, echo=FALSE}
 co2_fit%>%resid()%>%
   as.ts()%>%
   Box.test(., lag=10, type="Ljung-Box")
@@ -949,7 +946,7 @@ knitr::kable(accu_table,row.names = F)
 ggsave("models.evaluation.png", plot = Eval_mods, width = 12, height = 8)
 ```
 
-```{r fig16, echo=FALSE, out.width = '50%', fig.show = 'hold', fig.pos='H', fig.cap="Comparison between Acutal Data and Linear and ARIMA Model Forecasts"}
+```{r fig16, echo=FALSE, fig.show = 'hold', fig.pos='H', fig.cap="Comparison between Acutal Data and Linear and ARIMA Model Forecasts"}
 knitr::include_graphics("models.evaluation.png")
 ```
 
@@ -1230,3 +1227,13 @@ stargazer(forecast_df, type = "text", title = "Forecasted Year and Month CO2 Lev
 ```{=tex}
 \begin{center} \textbf{IV. Conclusion} \end{center}
 ```
+Atmospheric CO2 concentrations have been on the rise historically. In our analysis, we sought to understand how different modeling approaches captured this trend. When comparing our initial quadratic model with seasonal dummy variable and ARIMA model, using data up to 1997, we observed that our initial quadratic model was able to predict real world data better. The ARIMA model was able to better represent the data as we could tell by the residuals, however it was lacking a term that would account for seasonality. Therefore, on present data, we fit models on both seasonally adjusted and non seasonally adjusted training datasets. In our analysis we observed the ARIMA model trained on a non seasonally adjusted data set slightly out performed the polynomial ARIMA model trained on the seasonally adjusted training dataset. We forecasted on non seasonal data and predicted at a 95% confidence interval that that we would first exceed 500ppm atmospheric CO2 levels in January 2023 and March 2049 respectively if things continue to progress as they have been.
+
+
+```{=tex}
+\begin{center} \textbf{V. References} \end{center}
+```
+1. Keeling, Charles D. “Rewards and penalties of monitoring the Earth.” Annual Review of Energy and the Environment, vol. 23, no. 1, Nov. 1998, pp. 0–82, https://doi.org/10.1146/annurev.energy.23.1.25. 
+2. Keeling, Charles D. “The concentration and isotopic abundances of carbon dioxide in the atmosphere.” Tellus, vol. 12, no. 2, May 1960, pp. 0–203, https://doi.org/10.1111/j.2153-3490.1960.tb01300.x. 
+3. US Department of Commerce, NOAA. “Global Monitoring Laboratory - Carbon Cycle Greenhouse Gases - Measuring CO2.” GML, 1 Oct. 2005, gml.noaa.gov/ccgg/about/co2_measurements.html. 
+4. US Department of Commerce, NOAA. “Trends in Atmospheric Carbon Dioxide.” GML, 1 Oct. 2005, gml.noaa.gov/ccgg/trends/data.html. 
