@@ -16,8 +16,6 @@ header-includes:
 ```{r setup, include=FALSE, warning=FALSE, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-
-
 ```{r load packages, message=FALSE, warning=FALSE,include=F}
 library(tidyverse)
 library(patchwork) 
@@ -44,7 +42,6 @@ library(gridExtra)
 ## To use TeX() to write expression in the title of plots
 library(latex2exp)
 ```
-
 ```{r set themes,include=F, echo = FALSE}
 theme_set(theme_minimal())
 ```
@@ -78,29 +75,28 @@ This analysis begins with a meticulous measurement of atmospheric carbon dioxide
 \begin{center} \textit{B. Historical Trends} \end{center}
 In the left top panel of Figure 1, the time series plot of $CO_2$ concentrations up to 1997 clearly indicates a robust and consistent trend as well as seasonality within the monthly mean $CO_2$ data. This steady rise indicates the cumulative impact of human activities, primarily the burning of fossil fuels, which is corroborated by the histogram in the top-right panel. The histogram reveals the distribution of CO2 measurements, with most data points clustering around the higher end of the scale as time progresses, which supports the trend observed in the time series plot. The ACF plot in the bottom-left panel displays significant and sustained autocorrelation across numerous time lags, which denotes the presence of seasonality within the data. This seasonality is evidenced by the regular oscillations in $CO_2$ levels due to the cyclical nature of plant growth and decay, especially prominent in the northern hemisphere with its larger landmass and extensive vegetation (2). Lastly, the PACF plot in the bottom-right panel presents a first lag yielding a value of 1, indicating the present of a unit root within the series.  
 
-```{r fig1, echo=FALSE, fig.cap="1997 CO2"}
+```{r fig1, echo=FALSE, fig.pos='H', fig.cap="1997 CO2"}
 knitr::include_graphics("originaltrend.plot.png")
 ```
 
-To further investigate this, first-differences $CO_2$ was analyzed to check the stationarity (Figure 2). In Figure 2, we see the elimination of the long-term trend, exposing the underlying seasonality more clearly. Which is further supported by periodic oscillations in the ACF plot. Significant lags for non-seasonal MA terms are observed, along with potential indications of seasonal MA terms. The PACF suggests the presence of non-seasonal and seasonal AR lags. To formally assess the stationarity of the differenced series, a KPSS root test was performed. The results from the KPSS test, with a p-value of 0.1 indicate that the null hypothesis of stationarity cannot be rejected, supporting the conclusion that the first differencing of the CO_2 series was necessary to achieve a stationary time series. 
+To further investigate this, first-differences $CO_2$ was analyzed to check the stationarity. In Figure 2, we see the elimination of the long-term trend, exposing the underlying seasonality more clearly. Which is further supported by periodic oscillations in the ACF plot. Significant lags for non-seasonal MA terms are observed, along with potential indications of seasonal MA terms. The PACF suggests the presence of non-seasonal and seasonal AR lags. To formally assess the stationarity of the differenced series, a KPSS root test was performed. The results from the KPSS test, with a p-value of 0.1 indicate that the null hypothesis of stationarity cannot be rejected, supporting the conclusion that the first differencing of the $CO_2$ series was necessary to achieve a stationary time series. 
 
-```{r fig2, echo=FALSE, fig.cap="1997 CO2 First Difference."}
+```{r fig2, echo=FALSE, fig.pos='H', fig.cap="1997 CO_2 First Difference."}
 knitr::include_graphics("differenced.plot.png")
 ```
 
-The decomposition analysis in Figure 3, reflecting the persistent rise in CO2 levels, alongside regular seasonal patterns that show no change in magnitude over time. The first differencing of the data confirms these findings, indicating stable month-to-month variations once the trend is removed.
+The decomposition analysis in Figure 3, reflecting the persistent rise in $CO_2$ levels, alongside regular seasonal patterns that show no change in magnitude over time. The first differencing of the data confirms these findings, indicating stable month-to-month variations once the trend is removed.
 
 ```{r fig3, echo=FALSE, out.width = '48%', fig.show = 'hold', fig.pos='H', fig.cap="Decomposed CO2 and First Difference CO2 time series"}
 knitr::include_graphics("dcmp_co2_plot.png")
 knitr::include_graphics("dcmp_co2_1d_plot.png")
 ```
 
-Percentage growth rate assessment, indicates a steady increase in atmospheric concentrations, consistently below 0.8% annually. Despite appearing small, this percentage represents a meaningful and compounding rise in CO2 levels, indicative of an accelerating trend with significant long-term implications.
+Percentage growth rate assessment, indicates a steady increase in atmospheric concentrations, consistently below 0.8% annually. Despite appearing small, this percentage represents a meaningful and compounding rise in $CO_2$ levels, indicative of an accelerating trend with significant long-term implications.
 
-```{r fig4, echo=FALSE, fig.width= 6, fig.height= 4, fig.cap="Percentage Growth Rate Assessment"}
+```{r fig4, echo=FALSE, fig.width= 6, out.width = '68%', fig.height= 4, fig.pos='H', fig.cap="Percentage Growth Rate Assessment"}
 knitr::include_graphics("p.growthrate.png")
 ```
-
 
 ```{r Original Dataset Transformations,include=F}
 # Load the CO2 dataset
@@ -263,270 +259,24 @@ ggsave("p.growthrate.png", plot = p.growthrate, width = 7, height = 4)
 #co2_growth_rate_log
 ```
 
+\begin{center} \textit{C. Present Trends} \end{center}
+When assessing the evolution of the Keeling Curve from 1997 to the present, we continue to observe a pronounced upward trend in CO2 levels, echoing the patterns identified in the earlier data. The ACF and PACF plots display sustained autocorrelation and the presence of a unit root, respectively, consistent with the historical analysis which necessitated differencing to achieve stationarity. The KPSS test corroborates this, with a p-value indicating stationarity in the differenced series. These findings confirm the ongoing influence of human activities on CO2 concentrations, with the percentage growth rate analysis further highlighting a compounding rise in levels, maintaining a rate below 0.8% annually. This persistence of trends and seasonality from the 1997 data to the present underscores the unrelenting trajectory of CO2 accumulation in the atmosphere.
 
-## Linear time trend model
-
-Fit a linear time trend model to the `co2` series, and examine the characteristics of the residuals. Compare this to a quadratic time trend model. Discuss whether a logarithmic transformation of the data would be appropriate. Fit a polynomial time trend model that incorporates seasonal dummy variables, and use this model to generate forecasts to the year 2020. 
-
-We will first begin to decompose the data into a linear trend to see how well we are able to fit the data with just a linear time trend.
-```{r, fig.width = 7, fig.height = 4, fig.align = 'center', warning = F}
-
-mod.linear <- co2_df %>%
-  model(trend_model = TSLM(co2 ~ trend()))
-
-mod.quad <- co2_df %>%
-  model(trend_model = TSLM(co2 ~ trend() + I(trend()^2)))
-
-mod.linear.res.plot <- mod.linear %>% gg_tsresiduals() + labs(title="Figure 3 Linear Model Residuals")
-
-mod.quad.res.plot <- mod.quad %>% gg_tsresiduals() + labs(title="Figure 4 Quadratic Model Residuals")
-
-mod.linear.res.plot 
-mod.quad.res.plot
-```
-After fitting the quadratic model, we can see that the residuals in Figure 4 compared to the residuals in Figure 3 are more stationary. We can also see in the that the histogram in Figure 4 looks more normal than Figure 3. The quadratic model seems to fit the data better than the linear model. However, there is still seasonality in the ACF that needs to be addressed. We will also take a look at additive and multiplicative decomposition to see if using the log of CO2 concentration will help in fitting the data.
-```{r fig.width=10, fig.height=5, fig.align="center", warning=FALSE}
-
-co2_df <- co2_df %>%
-  mutate(log_co2 = log(co2))
-
-dcmp_add <- co2_df %>%
-  model(add = classical_decomposition(co2, type = "additive")) 
-
-dcmp_multi <- co2_df %>%
-  model(stl = STL(log_co2))
-
-p33 <- components(dcmp_add) %>% autoplot() + labs("Figure 5 Classical Decomposition")
-
-p34<- components(dcmp_add) %>%
-  ACF(random) %>%
-  autoplot() + labs(title="Residuals additive decomposition")
-
-p35 <- components(dcmp_multi) %>% autoplot() + labs("Figure 6 STL Decomposition")
-
-p36<- components(dcmp_multi)%>%
-  ACF(remainder) %>%
-  autoplot() + labs(title="Residuals of multiplicative decomposition")
-
-grid.arrange(p33,p34,p35 ,p36, nrow = 2, ncol = 2)
-
+```{r fig5, echo=FALSE, out.width = '55%', fig.show = 'hold', fig.pos='H', fig.cap="Present CO2 and First Differenced"}
+knitr::include_graphics("present.ts.plot.png")
+knitr::include_graphics("present.ts.diff.plot.png")
 ```
 
-When comparing at the residuals in Figure 5 (additive decomposition) and Figure 6 (multiplicative decomposition), we can looking at he ACFs that the residuals are less pronounced when we use multiplicative decomposition. Therefore by logging the values of CO2 we are able to better capture any non linear relationships that we have in our data. Next we will fit polynomial time trend model that incorporates seasonal dummy variables to capture the seasonality of the data. We will also be using the log of CO2 in our model.
+The time series decomposition graphs illustrate the transformation from non-stationary to stationary data. The original dataset depicts an upward trend, signifying non-stationarity, with clear seasonality and considerable random fluctuations. Post differencing, the trend component is neutralized, evidencing stationarity with a consistent mean. The seasonal patterns remain unchanged, indicating their persistence regardless of stationarity. The random component, though still volatile, is now centered around zero without a discernible trend, characterizing the achieved stationarity. 
 
-```{r}
-mod.quad_season <- co2_df %>%
-  model(trend_model = TSLM(log_co2 ~ trend()+I(trend()^2)+ season())) 
-mod.quad_season %>% gg_tsresiduals() + labs(title="Figure 7 Polynomial and Seasonal Dummy Variables Model Residuals")
-```
-Based on Figure 7, we can see that the seasonal dummy variables have done a much better job capturing the seasonality in our data than our previous models. The ACF shows no instance of seasonality. Based on the scale of the residuals, we can see that our data is better captured by the seasonal dummy variable, as the scales in the graph of the residuals is much smaller than the scale in Figures 3 and 4. Although we are capturing the data better, we do not have white noise as the correlations in the ACF as we increase the lag still seem to be significant. Next we will forecast using this model.
-```{r, fig.width = 7, fig.height = 4, fig.align = 'center', warning = F, include=F, echo = FALSE}
-mod.linear_season <- co2_df %>%
-  model(trend_model = TSLM(co2 ~ trend() + season())) 
-mod.linear_season.aug <- mod.linear_season %>% augment()
-
-mod.linear_season.aug.plot <- mod.linear_season.aug  %>%  
-  autoplot(.fitted, color = "blue") +
-  geom_line(data = co2_df, 
-          aes(x = time_index, y = co2, color = "Actual Values"))+
-  labs(title = expression(Fitted~Monthly~Mean~CO[2]~by~Linear~Model), 
-       y = "CO2 Parts per Million",
-       x = "Month and Year")
-
-mod.quad_season.aug <- mod.quad_season %>% augment()
-mod.quad_season.aug$rescale_fitted <- exp(mod.quad_season.aug$.fitted)
-
-mod.quad_season.aug.plot <- mod.quad_season.aug %>%  
-  autoplot(rescale_fitted, color = "blue") +
-  geom_line(data = co2_df, 
-          aes(x = time_index, y = co2, color = "Actual Values"))+
-  labs(title = expression(Fitted~Monthly~Mean~CO[2]~by~Quadratic~Model~with~Log~Transformation), 
-       y = "CO2 Parts per Million",
-       x = "Month and Year")
-
-mod.linear_season.aug.plot | mod.quad_season.aug.plot
-```
-
-```{r}
-mod.quad_season.predictions <- new_data(co2_df, n = 300)
-
-mod.quad_season %>%
-  forecast(new_data = mod.quad_season.predictions) %>%
-  autoplot(co2_df) + labs(title = "Figure 8 Linear time trend model Forecast")
-```
-
-## ARIMA times series model 
-
-From above sections, we have proved that co2 has 1 unit root and lags in both non-seasonal and seasonal MA and AR models. So, our basic model will search MA(p:0-3) and AR(q: 0-3) with d=1. The EDA of the first differencing of $CO_2$ indicates that the first differenced $CO_2$ data has strong seasonality while doesn't have persistent and obvious trend. The ACF further verified the yearly seasonality as the autocorrelation peaks at lag 12 and 24. Thus, we tested different ARIMA models below. We will use ARIMA() to find out the exact number of lag by searching a set of different possible models, comparing AIC/BIC, and selecting the model with the lowest values. The optimal model based on pre-defined criteria is ARIMA(0,1,1)(1,1,2), which has non-seasonal and seasonal difference 1,seasonal lag for AR(1), non-seasonal and seasonal lag for  MA(1,2) model, which is close to what we guess and observed before. We noticed that the model without intercept has much lower BIC(201.78) than the model with intercept(692.46). 
-
-```{r, include=T, echo = FALSE}
-# no intercept
-co2_df %>%
-  model(ARIMA(co2 ~ 0 + pdq(0:3,1:2,0:3) + PDQ(0:3,0:1,0:3, period=12), ic="bic", stepwise=F, greedy=F)) %>%report()
-# with intercept
-co2_df %>%
-  model(ARIMA(co2 ~ 1 + pdq(0:3,1:2,0:3) + PDQ(0:3,0:1,0:3, period=12), ic="bic", stepwise=F, greedy=F)) %>%report()
-```
-
-Then we use residual to check the model fitness. The Figure 9 shows that the histogram of residual close to normal distribution. The acf plot of residual shows most lags within the limit with only 2 significant lags. The Ljung Box test also proved that the we cannot reject the null hypothesis (p=0.1441) and the data are independently distributed and residual does not have serial correlation over time and stationary. 
-
-```{r original model residual, include=T,echo=FALSE}
-
-co2_fit<-co2_df%>%model(arima_fit=ARIMA(co2~pdq(0,1,1)+PDQ(1,1,2, period=12), ic="bic", stepwise=F, greedy=F))
-
-co2_fit%>% gg_tsresiduals()+ labs(title = "Figure 9 Model Residual")
-
-```
-```{r, include=FALSE, echo=FALSE}
-co2_fit%>%resid()%>%
-  as.ts()%>%
-  Box.test(., lag=10, type="Ljung-Box")
-```
-
-In next section, we will demonstrate the predicted data to 2022 by using selected ARIMA model.
-
-
-## Forecast atmospheric CO2 growth 
-
-### Forecast to 2022 with advanced linear model and ARIMA model.
-COMMENT: add forecasting results for linear model, quadratic, arima in a single plot in different colors
-
-In ARIMA forecast, it looks like the model captures the general increasing trend of co2 as well as the seasonality within entire predicting period (Figure 11).
-```{r ARIMA forecast, fig.width = 7, fig.height = 4, fig.align = 'center', warning = F, echo=FALSE}
-co2_fit%>%
-  forecast(h=300)%>%
-  autoplot()+ labs(title = "Figure 11 ARIMA Model Forecast")
-```
-
-
-Generate predictions for when atmospheric CO2 is expected to be at [420 ppm](https://research.noaa.gov/article/ArtMID/587/ArticleID/2764/Coronavirus-response-barely-slows-rising-carbon-dioxide) and 500 ppm levels for the first and final times (consider prediction intervals as well as point estimates in your answer). Generate a prediction for atmospheric CO2 levels in the year 2100. How confident are you that these will be accurate predictions?
-
-```{r}
-# Generate forecast till end of 2100
-co2_fit.forecast <- co2_fit %>% forecast(h=1236) 
-mod.quad_season.forecast <- mod.quad_season %>% forecast(h=1236) 
-mod.linear_season.forecast <- mod.linear_season %>% forecast(h=1236) 
-
-arima.forecast.plot <- autoplot(co2_fit.forecast, prediction.interval = TRUE, show.legend = TRUE) +
-  labs(title = "ARIMA Model Forecasts", 
-       x = "Year and Month", 
-       y = "ARIMA Forecasted CO2(ppm)") +
-  geom_hline(yintercept = 420, linetype = "dashed", color = "blue") +
-  geom_hline(yintercept = 500, linetype = "dashed", color = "blue") 
-  
-quad.forecast.plot <- autoplot(mod.quad_season.forecast, series = "Quad Season", 
-                               prediction.interval = TRUE, fill = "green", show.legend = TRUE) +
-  labs(title = "Quadratic Model Forecasts", 
-       x = "Year and Month", 
-       y = "Log of CO2(ppm)") +
-  geom_hline(yintercept = log(420), linetype = "dashed", color = "green") +
-  geom_hline(yintercept = log(500), linetype = "dashed", color = "green") 
-
-linear.forecast.plot <- autoplot(mod.linear_season.forecast, series = "Linear Season", 
-                                 prediction.interval = TRUE, fill = "orange", show.legend = TRUE) +
-  labs(title = "Linear Model Forecasts", 
-       x = "Year and Month", 
-       y = "Linear Forecasted CO2(ppm)") +
-  geom_hline(yintercept = 420, linetype = "dashed", color = "orange") +
-  geom_hline(yintercept = 500, linetype = "dashed", color = "orange") 
-
-# Combine the plots
-final_plot <- arima.forecast.plot + quad.forecast.plot + linear.forecast.plot
-
-# Show the final plot
-final_plot
-```
-
-```{r}
-# Calculate the difference between 420
-co2_fit.forecast$co2_420 <- co2_fit.forecast$.mean - 420
-
-# Find the month year with minimum difference to 420
-df_420 <- co2_fit.forecast %>% slice_min(abs(co2_420))
-df_420
-df_420$co2
-
-# Extract the mean and standard deviation from the distribution
-mean <- df_420$.mean
-sd <- sqrt(242)
-
-# Calculate the 95% confidence interval
-lower_bound <- qnorm(0.025, mean, sd)  # 0.025 corresponds to the lower tail of the distribution
-upper_bound <- qnorm(0.975, mean, sd)  # 0.975 corresponds to the upper tail of the distribution
-
-# Print the confidence interval
-print(c(lower_bound, upper_bound))
-```
-We calculate the difference between the point prediction (`.mean`) and 420, and extrac the row with lowest absolute difference. In this way, we can obtain the month and year of which $CO_2$ is closest to 420. Based on this approach, we found that in December 2033, the point prediction of $CO_2$ level is closest to 420, with variance equal to 242. We also calculate the 95% confidence interval, and we are 95% confident that the true $CO_2$ value is between 389.5 to 450.5.
-
-```{r}
-# Calculate the difference between 500
-co2_fit.forecast$co2_500 <- co2_fit.forecast$.mean - 500
-
-# Find the month year with minimum difference to 500
-df_500 <- co2_fit.forecast %>% slice_min(abs(co2_500))
-
-df_500
-df_500$co2
-
-# Extract the mean and standard deviation from the distribution
-mean <- df_500$.mean
-sd <- sqrt(2462)
-
-# Calculate the 95% confidence interval
-lower_bound_500 <- qnorm(0.025, mean, sd)  # 0.025 corresponds to the lower tail of the distribution
-upper_bound_500 <- qnorm(0.975, mean, sd)  # 0.975 corresponds to the upper tail of the distribution
-
-# Print the confidence interval
-print(c(lower_bound_500, upper_bound_500))
-```
-We calculate the difference between the point prediction (`.mean`) and 500, and extrac the row with lowest absolute difference. In this way, we can obtain the month and year of which $CO_2$ is closest to 500. Based on this approach, we found that in June 2083, the point prediction of $CO_2$ level is closest to 420, with variance equal to 242. We also calculate the 95% confidence interval, and we are 95% confident that the true $CO_2$ value is between 402.8 to 597.3.
-```{r}
-co2_fit.forecast_2100 <- co2_fit.forecast[co2_fit.forecast$time_index >= as.Date("2100-01-01"), ]
-
-# Plot the forecasting results
-co2_fit.forecast_2100 %>%
-  autoplot()+ labs(title = "Figure 14 Final Model Forecast for 2100")
-
-# Range of point prediction
-range(co2_fit.forecast_2100$.mean)
-```
-The point prediction of $CO_2$ levels in year 2100 ranges from 521.1 to 517.2. Throughout the entire year of 2100, we are 95% confident that the $CO_2$ levels fall within then  range of 400 to 600.
-
-# Report from the Point of View of the Present 
-
-One of the very interesting features of Keeling and colleagues' research is that they were able to evaluate, and re-evaluate the data as new series of measurements were released. This permitted the evaluation of previous models' performance and a much more difficult question: If their models' predictions were "off" was this the result of a failure of the model, or a change in the system? 
-
-## Introduction 
-
-In this introduction, you can assume that your reader will have **just** read your 1997 report. In this introduction, **very** briefly pose the question that you are evaluating, and describe what (if anything) has changed in the data generating process between 1997 and the present.
-
-\begin{center} \textbf{I. Background} \end{center}
-\begin{center} \textit{A. Question at Hand} \end{center}
-Following our 1997 report, we face a critical question: \textit{How accurately have past models predicted the CO2 levels measured since then?} This probes not just the precision of our forecast but also examining whether discrepancies signify model limitations or reflect shifts in the climate system.
-\begin{center} \textit{B. Data Generation Process since 1997} \end{center}
-Since 1997, significant advancements occurred in the data generating process for measuring CO2 levels at the Mauna Loa Observatory. There was an adoption of a new CO2 analyzer in April 2019, employing Cavity Ring-Down Spectroscopy (CRDS) technology, replacing the previous infrared absorption-based analyzer. Calibration methods also evolved, with meticulous control of temperature, pressure, and flow rate, along with frequent calibrations using reference gas mixtures. Furthermore, detailed data selection criteria have been implemented to identify background air, which aimed to eliminate local influences on CO2 measurements (3). In addition to the advancements, there was a disruption in measurements from November 2022 to July 2023 due to the eruption of the Mauna Loa Volcano, during which observations were conducted from the Maunakea Observatories approximately 21 miles north of the Mauna Loa Observatory. However, observations at Mauna Loa resumed in July 2023, ensuring continuity in the long-term CO2 monitoring efforts (4).
-
-Reference, to move later
-(3) https://gml.noaa.gov/ccgg/about/co2_measurements.html
-(4) https://gml.noaa.gov/ccgg/trends/data.html
-
-## (3 points) Task 1b: Create a modern data pipeline for Mona Loa CO2 data.
-
-The most current data is provided by the United States' National Oceanic and Atmospheric Administration, on a data page [[here](https://gml.noaa.gov/ccgg/trends/data.html)]. Gather the most recent weekly data from this page. (A group that is interested in even more data management might choose to work with the [hourly data](https://gml.noaa.gov/aftp/data/trace_gases/co2/in-situ/surface/mlo/co2_mlo_surface-insitu_1_ccgg_HourlyData.txt).) 
-
-
-Create a data pipeline that starts by reading from the appropriate URL, and ends by saving an object called `co2_present` that is a suitable time series object. 
-```{r Data pipeline and reading data}
-co2_present<-read.csv("https://gml.noaa.gov/webdata/ccgg/trends/co2/co2_weekly_mlo.csv", header=T, sep=",", quote = "\"", dec = ".", fill = TRUE, comment.char = "#")
+```{r Data pipeline and reading data, message = F, include = F}
+# Website went down 
+#co2_present<-read.csv("https://gml.noaa.gov/webdata/ccgg/trends/co2/co2_weekly_mlo.csv", header=T, sep=",", quote = "\"", dec = ".", fill = TRUE, comment.char = "#")
+co2_present <- read.csv("co2_weekly_mlo.csv", skip = 35, header = TRUE)
 co2_present[1:4, ]
 class(co2_present)
 ```
-
-
-Conduct the same EDA on this data. Describe how the Keeling Curve evolved from 1997 to the present, noting where the series seems to be following similar trends to the series that you "evaluated in 1997" and where the series seems to be following different trends. This EDA can use the same, or very similar tools and views as you provided in your 1997 report. 
-
-```{r EDA - dataset manipulation}
+```{r EDA - dataset manipulation, include = F}
 # Create a Date column from year, month, day - duplicates when only monthyear since its weekly data
 co2_present$date <- as.Date(with(co2_present, paste(year, month, day, sep="-")), "%Y-%m-%d")
 co2_present$time_index <- co2_present$date
@@ -549,8 +299,7 @@ print(df_counts_NA)
 co2_present <- co2_present %>%
   mutate(across(c(average, X1.year.ago, X10.years.ago, increase.since.1800), ~na_if(.x, -999.99)))
 ```
-
-```{r EDA - plots, warning = F}
+```{r EDA - plots, warning = F, include = F}
 # Time plot
 timeplot_co2.p <- co2_present %>%
   ggplot() +
@@ -583,10 +332,11 @@ pacf_co2.p <- co2_present %>%
   autoplot() +
   labs(y = "PACF")
 
-(timeplot_co2.p + hist_co2.p) /
+present.ts.plot <- (timeplot_co2.p + hist_co2.p) /
   (acf_co2.p + pacf_co2.p)
+ggsave("present.ts.plot.png", plot = present.ts.plot, width = 7, height = 4)
 ```
-```{r EDA - plots1, warning = F}
+```{r EDA - plots diff, warning = F, include = F}
 # Time plot
 timeplot_co2_1d.p <- co2_present %>%
   ggplot() +
@@ -619,20 +369,18 @@ pacf_co2_1d.p <- co2_present %>%
   autoplot() +
   labs(y = "PACF")
 
-(timeplot_co2_1d.p + hist_co2_1d.p) /
+present.ts.diff.plot <- (timeplot_co2_1d.p + hist_co2_1d.p) /
   (acf_co2_1d.p + pacf_co2_1d.p)
+ggsave("present.ts.diff.plot.png", plot = present.ts.diff.plot, width = 7, height = 4)
 ```
-
-The plots reveals a persistent upward trend in CO2 levels over time, mirroring findings from the 1997 report and indicating ongoing environmental concerns. Notably, the slow decay in the autocorrelation function suggests a sustained trend effect, while the first lag in the partial autocorrelation function indicates a unit root, highlighting a lack of stationarity in the data. These results are further supported by the KPSS test, which returns a p-value of 0.01, below the 5% threshold, leading to the rejection of the null hypothesis of stationarity. To address this issue, differencing the data was done, resulting in a subsequent KPSS test yielding a p-value of 0.1, indicating the necessity of differencing to achieve stationarity.
-
-```{r EDA - KPSS original data}
+```{r EDA - KPSS original data, include = F}
 co2_kpss<- co2_present %>%
   # Have to filter out any NAs before performing the KPSS test
   filter(!is.na(average)) %>%
   features(average, unitroot_kpss)
 print(co2_kpss)
 ```
-```{r EDA - KPSS differencing data}
+```{r EDA - KPSS differencing data, include= F}
 # Differencing the data
 co2_differenced <- co2_present %>%
   mutate(diff_average = difference(average))
@@ -641,7 +389,7 @@ co2_kpss_diff_results <- co2_differenced %>%
   features(diff_average, unitroot_kpss)
 print(co2_kpss_diff_results)
 ```
-```{r EDA - classical decomposition: original and differenced data}
+```{r EDA - classical decomposition: original and differenced data, include = F}
 # Omitting NAs for decomposition
 co2_mod <- co2_present %>%
   mutate(average = na.approx(average, na.rm = FALSE))
@@ -661,9 +409,7 @@ diff_average_ts <- ts(diff_average_vector, frequency = 52, start = c(1974, 2))
 diff_average_decomp <- decompose(diff_average_ts, type = "additive")
 plot(diff_average_decomp)
 ```
-The time series decomposition graphs illustrate the transformation from non-stationary to stationary data. The original dataset depicts an upward trend, signifying non-stationarity, with clear seasonality and considerable random fluctuations. Post differencing, the trend component is neutralized, evidencing stationarity with a consistent mean. The seasonal patterns remain unchanged, indicating their persistence regardless of stationarity. The random component, though still volatile, is now centered around zero without a discernible trend, characterizing the achieved stationarity. 
-
-```{r EDA - STL decomposition}
+```{r EDA - STL decomposition, include = F}
 # Log transformation to average for STL
 co2_mod <- co2_mod %>%
   as_tsibble(index = time_index)
@@ -680,9 +426,7 @@ co2_stl <- co2_log_transformed %>%
 co2_components <- components(co2_stl)
 autoplot(co2_components)
 ```
-
-
-```{r EDA - 5 year moving average growth rate, warning = F}
+```{r EDA - 5 year moving average growth rate, warning = F, include = F}
 # Calculating the average of the averages by each year
 co2_annual_averages <- co2_present %>%
   index_by(year = year(time_index)) %>%
@@ -710,12 +454,10 @@ co2_growth_plot <- ggplot(co2_annual_averages, aes(x = year, y = Moving_Average_
        y = "5-Year Moving Avg Growth Rate (%)") +
   theme_minimal()
 
-print(co2_growth_plot)
-
+co2_growth_plot
+ggsave("co2_growth_plot.png", plot = co2_growth_plot, width = 7, height = 4)
 ```
-The 5-year moving average growth rate of CO2 levels smooths out the yearly fluctuations as shown by the blue line and displays a more consistent and interpretable trend with the red line. It can be obsered that from around 1980 until the early 2000s,the growth rate of CO2 levels increased moderately. However, after the early 2000s, there is a more pronounced upward trend, indicating that the rate at which CO2 is accumulating in the atmosphere has been accelerating.
-
-```{r, create monthly data}
+```{r, create monthly data, include = F}
 # Create a dataframe showing the monthly mean co2
 monthly_mean_co2 <- co2_present[(!is.na(co2_present$average))
                                 & (co2_present$year>1997), ] %>% 
@@ -759,16 +501,14 @@ monthly_mean_co2_df %>%
   )
 
 ```
-
-```{r, decomposition}
+```{r, decomposition, include = F}
 # Decomposition
 co2_mod_monthly.ts <- ts(monthly_mean_co2_df$co2, frequency = 12)
 class(co2_mod_monthly.ts)
 co2_monthly_decomp <- decompose(co2_mod_monthly.ts, type = "additive")
 plot(co2_monthly_decomp)
 ```
-
-```{r, seasonal adjustment}
+```{r, seasonal adjustment, include = F}
 monthly_mean_co2_df$sa_co2 <- monthly_mean_co2_df$co2 - co2_monthly_decomp$seasonal
 
 # plot nsa vs. sa
@@ -785,11 +525,289 @@ monthly_mean_co2_df %>%
 ```
 
 
-## Compare linear model forecasts against realized CO2
-The actual monthly mean CO2 levels has a systematic increasing trend and regular fluctuations in fixed time period, indicating consistent growth and seasonality. The decomposition further proved its non-stationarity, increasing trend, and seasonality. In previous sections, we used linear model with quadratic term and season to capture the increasing rate and seasonality and predict the CO2 till 2022 Dec. The figure shows that the peak of 2020 is slightly below 6.05, while the peak of 2022 is over 6.05. In actual data plot, we can found that the peak of 2020 is around 6.03, while th peak of 2022 still below 6.05. Therefore, we can say the linear model was able to predict the seasonality in the predicted data but the systematic increasing trend was slightly over estimated, indicating higher slope coefficient in predicted trend than the actual trend of realized atmospheric CO2 data.  
+\begin{center} \textbf{III. Models and Forecasts} \end{center}
+Diving into predictive analytics, we transitioned our focus from exploratory data analysis to the development and application of statistical models. A crucial step towards forecasting future levels of atmospheric $CO_2$ based on historical data trends. 
+
+\begin{center} \textit{A. Linear Model} \end{center}
+Initiating our examination of the $CO_2$ series, we applied a linear model to uncover basic trends. When fitting a linear time trend model to the $CO_2$ data, the residuals displayed in Figure 5 exhibit systematic patterns, hinting at unaccounted seasonal effects.  The ACF plot further confirms this with significant auto correlations at seasonal intervals. This suggests the linear model's limitations in capturing the $CO_2$ series' intricacies. Shifting to the quadratic model, we can see that the residuals in Figure 6 compared to the residuals in Figure 5 are more stationary. We can also see in the that the histogram in Figure 6 looks more normal than Figure 5. The quadratic model seems to fit the data better than the linear model. However, there is still seasonality in the ACF that needs to be addressed. We took a look at additive and multiplicative decomposition to see if using the log of $CO_2$ concentration will help in fitting the data.
+
+```{r fig7, echo=FALSE, out.width = '50%', fig.show = 'hold', fig.pos='H', fig.cap="Linear and Quadratric Model Residuals"}
+knitr::include_graphics("mod.linear.res.plot.png")
+knitr::include_graphics("mod.quad.res.plot.png")
+```
+
+When comparing at the residuals in additive decomposition and multiplicative decomposition, we can looking at the ACFs that the residuals are less pronounced when we use multiplicative decomposition. Therefore by logging the values of CO2 we are able to better capture any non linear relationships that we have in our data. Next we will fit polynomial time trend model that incorporates seasonal dummy variables to capture the seasonality of the data. We will also be using the log of CO2 in our model.
+
+```{r fig8, echo=FALSE, out.width = '60%', fig.show = 'hold', fig.pos='H', fig.cap="Additive and STL Decompositions"}
+knitr::include_graphics("decomp.plot.png")
+```
 
 
-```{r,fig.width = 12, fig.height = 4, fig.align = 'center', warning = F, echo=FALSE}
+Based on Figure 7, we can see that the seasonal dummy variables have done a much better job capturing the seasonality in our data than our previous models. The ACF shows no instance of seasonality. Based on the scale of the residuals, we can see that our data is better captured by the seasonal dummy variable, as the scales in the graph of the residuals is much smaller than the scale in Figures 3 and 4. Although we are capturing the data better, we do not have white noise as the correlations in the ACF as we increase the lag still seem to be significant. Next we will forecast using this model.
+
+```{r fig9, echo=FALSE, out.width = '50%', fig.show = 'hold', fig.pos='H', fig.cap="Polynomial and Seasonal Dummy Variables Model Residuals"}
+knitr::include_graphics("mod.quad.season.plot.png")
+```
+
+```{r fig10, echo=FALSE, out.width = '50%', fig.show = 'hold', fig.pos='H', fig.cap="Linear time trend model Forecast"}
+knitr::include_graphics("mod.quad.forecast.png")
+```
+
+
+```{r, fig.width = 7, fig.height = 4, fig.align = 'center', warning = F, include = F}
+
+mod.linear <- co2_df %>%
+  model(trend_model = TSLM(co2 ~ trend()))
+
+mod.quad <- co2_df %>%
+  model(trend_model = TSLM(co2 ~ trend() + I(trend()^2)))
+
+mod.linear.res.plot <- mod.linear %>% gg_tsresiduals() + labs(title="Linear Model Residuals")
+
+mod.quad.res.plot <- mod.quad %>% gg_tsresiduals() + labs(title="Quadratic Model Residuals")
+
+mod.linear.res.plot
+
+
+#mod.quad.res.plot
+ggsave("mod.linear.res.plot.png", plot = mod.linear.res.plot, width = 7, height = 4)
+ggsave("mod.quad.res.plot.png", plot = mod.quad.res.plot, width = 7, height = 4)
+```
+```{r fig.width=10, fig.height=5, fig.align="center", warning=FALSE, include = F}
+
+co2_df <- co2_df %>%
+  mutate(log_co2 = log(co2))
+
+dcmp_add <- co2_df %>%
+  model(add = classical_decomposition(co2, type = "additive")) 
+
+dcmp_multi <- co2_df %>%
+  model(stl = STL(log_co2))
+
+p33 <- components(dcmp_add) %>% autoplot() + labs("Classical Decomposition")
+
+p34<- components(dcmp_add) %>%
+  ACF(random) %>%
+  autoplot() + labs(title="Residuals additive decomposition")
+
+p35 <- components(dcmp_multi) %>% autoplot() + labs("STL Decomposition")
+
+p36<- components(dcmp_multi)%>%
+  ACF(remainder) %>%
+  autoplot() + labs(title="Residuals of multiplicative decomposition")
+
+grid.arrange(p33,p34,p35 ,p36, nrow = 2, ncol = 2)
+decomp.plot <- (p33 + p34) / (p35 + p36)
+ggsave("decomp.plot.png", plot = decomp.plot, width = 7, height = 4)
+```
+```{r Polynomial and Seasonal Dummy Variables Model Residuals, include = F}
+mod.quad_season <- co2_df %>%
+  model(trend_model = TSLM(log_co2 ~ trend()+I(trend()^2)+ season())) 
+mod.quad.season.plot <- mod.quad_season %>% gg_tsresiduals() + labs(title="Polynomial and Seasonal Dummy Variables Model Residuals")
+
+ggsave("mod.quad.season.plot.png", plot = mod.quad.season.plot, width = 7, height = 4)
+```
+```{r, fig.width = 7, fig.height = 4, fig.align = 'center', warning = F, include=F}
+mod.linear_season <- co2_df %>%
+  model(trend_model = TSLM(co2 ~ trend() + season())) 
+mod.linear_season.aug <- mod.linear_season %>% augment()
+
+mod.linear_season.aug.plot <- mod.linear_season.aug  %>%  
+  autoplot(.fitted, color = "blue") +
+  geom_line(data = co2_df, 
+          aes(x = time_index, y = co2, color = "Actual Values"))+
+  labs(title = expression(Fitted~Monthly~Mean~CO[2]~by~Linear~Model), 
+       y = "CO2 Parts per Million",
+       x = "Month and Year")
+
+mod.quad_season.aug <- mod.quad_season %>% augment()
+mod.quad_season.aug$rescale_fitted <- exp(mod.quad_season.aug$.fitted)
+
+mod.quad_season.aug.plot <- mod.quad_season.aug %>%  
+  autoplot(rescale_fitted, color = "blue") +
+  geom_line(data = co2_df, 
+          aes(x = time_index, y = co2, color = "Actual Values"))+
+  labs(title = expression(Fitted~Monthly~Mean~CO[2]~by~Quadratic~Model~with~Log~Transformation), 
+       y = "CO2 Parts per Million",
+       x = "Month and Year")
+
+mod.linear_season.aug.plot | mod.quad_season.aug.plot
+```
+```{r, include = F}
+mod.quad_season.predictions <- new_data(co2_df, n = 300)
+
+mod.quad.forecast <- mod.quad_season %>%
+  forecast(new_data = mod.quad_season.predictions) %>%
+  autoplot(co2_df) + labs(title = "Linear time trend model Forecast")
+
+ggsave("mod.quad.forecast.png", plot = mod.quad.forecast, width = 7, height = 4)
+```
+
+\begin{center} \textit{B. ARIMA Time Series Model} \end{center}
+From above sections, we have proved that co2 has 1 unit root and lags in both non-seasonal and seasonal MA and AR models. So, our basic model will search MA(p:0-3) and AR(q: 0-3) with d=1. The EDA of the first differencing of $CO_2$ indicates that the first differenced $CO_2$ data has strong seasonality while doesn't have persistent and obvious trend. The ACF further verified the yearly seasonality as the autocorrelation peaks at lag 12 and 24. Thus, we tested different ARIMA models below. We will use ARIMA() to find out the exact number of lag by searching a set of different possible models, comparing AIC/BIC, and selecting the model with the lowest values. The optimal model based on pre-defined criteria is ARIMA(0,1,1)(1,1,2), which has non-seasonal and seasonal difference 1,seasonal lag for AR(1), non-seasonal and seasonal lag for  MA(1,2) model, which is close to what we guess and observed before. We noticed that the model without intercept has much lower BIC(201.78) than the model with intercept(692.46). 
+
+```{r, include=T, echo = FALSE}
+# no intercept
+co2_df %>%
+  model(ARIMA(co2 ~ 0 + pdq(0:3,1:2,0:3) + PDQ(0:3,0:1,0:3, period=12), ic="bic", stepwise=F, greedy=F)) %>%report()
+# with intercept
+co2_df %>%
+  model(ARIMA(co2 ~ 1 + pdq(0:3,1:2,0:3) + PDQ(0:3,0:1,0:3, period=12), ic="bic", stepwise=F, greedy=F)) %>%report()
+```
+
+Then we use residual to check the model fitness. The Figure 9 shows that the histogram of residual close to normal distribution. The acf plot of residual shows most lags within the limit with only 2 significant lags. The Ljung Box test also proved that the we cannot reject the null hypothesis (p=0.1441) and the data are independently distributed and residual does not have serial correlation over time and stationary. 
+
+```{r fig11, echo=FALSE, out.width = '50%', fig.show = 'hold', fig.pos='H', fig.cap="Model Residuals"}
+knitr::include_graphics("co2_fit.plot.png")
+```
+
+
+```{r original model residual, include=F}
+
+co2_fit<-co2_df%>%model(arima_fit=ARIMA(co2~pdq(0,1,1)+PDQ(1,1,2, period=12), ic="bic", stepwise=F, greedy=F))
+
+co2_fit.plot <- co2_fit%>% gg_tsresiduals()+ labs(title = "Model Residual")
+ggsave("co2_fit.plot.png", plot = co2_fit.plot, width = 7, height = 4)
+```
+```{r, include=FALSE, echo=FALSE}
+co2_fit%>%resid()%>%
+  as.ts()%>%
+  Box.test(., lag=10, type="Ljung-Box")
+```
+
+In next section, we will demonstrate the predicted data to 2022 by using selected ARIMA model.
+
+\begin{center} \textit{C. Atmospheric CO2 growth Forecast} \end{center}
+
+In ARIMA forecast, it looks like the model captures the general increasing trend of co2 as well as the seasonality within entire predicting period.
+
+```{r fig12, echo=FALSE, out.width = '50%', fig.show = 'hold', fig.pos='H', fig.cap="ARIMA Model Forecast"}
+knitr::include_graphics("arima.mod.forecast.png")
+```
+
+```{r fig13, echo=FALSE, out.width = '60%', fig.show = 'hold', fig.pos='H', fig.cap="Three Model Forecasts"}
+knitr::include_graphics("final_plot.png")
+```
+
+We calculate the difference between the point prediction (`.mean`) and 420, and extrac the row with lowest absolute difference. In this way, we can obtain the month and year of which $CO_2$ is closest to 420. Based on this approach, we found that in December 2033, the point prediction of $CO_2$ level is closest to 420, with variance equal to 242. We also calculate the 95% confidence interval, and we are 95% confident that the true $CO_2$ value is between 389.5 to 450.5.
+
+We calculate the difference between the point prediction (`.mean`) and 500, and extract the row with lowest absolute difference. In this way, we can obtain the month and year of which $CO_2$ is closest to 500. Based on this approach, we found that in June 2083, the point prediction of $CO_2$ level is closest to 420, with variance equal to 242. We also calculate the 95% confidence interval, and we are 95% confident that the true $CO_2$ value is between 402.8 to 597.3.
+
+The point prediction of $CO_2$ levels in year 2100 ranges from 521.1 to 517.2. Throughout the entire year of 2100, we are 95% confident that the $CO_2$ levels fall within then  range of 400 to 600.
+
+```{r fig14, echo=FALSE, out.width = '60%', fig.show = 'hold', fig.pos='H', fig.cap="Final Model Forecast for 2100"}
+knitr::include_graphics("forecasting.results.png")
+```
+
+```{r ARIMA forecast1, fig.width = 7, fig.height = 4, fig.align = 'center', warning = F, echo=FALSE, include = F}
+arima.mod.forecast <- co2_fit%>%
+  forecast(h=300)%>%
+  autoplot()+ labs(title = "ARIMA Model Forecast")
+ggsave("arima.mod.forecast.png", plot = arima.mod.forecast, width = 7, height = 4)
+```
+```{r all the forecasts, include= F}
+# Generate forecast till end of 2100
+co2_fit.forecast <- co2_fit %>% forecast(h=1236) 
+mod.quad_season.forecast <- mod.quad_season %>% forecast(h=1236) 
+mod.linear_season.forecast <- mod.linear_season %>% forecast(h=1236) 
+
+arima.forecast.plot <- autoplot(co2_fit.forecast, prediction.interval = TRUE, show.legend = TRUE) +
+  labs(title = "ARIMA Model Forecasts", 
+       x = "Year and Month", 
+       y = "ARIMA Forecasted CO2(ppm)") +
+  geom_hline(yintercept = 420, linetype = "dashed", color = "blue") +
+  geom_hline(yintercept = 500, linetype = "dashed", color = "blue") 
+  
+quad.forecast.plot <- autoplot(mod.quad_season.forecast, series = "Quad Season", 
+                               prediction.interval = TRUE, fill = "green", show.legend = TRUE) +
+  labs(title = "Quadratic Model Forecasts", 
+       x = "Year and Month", 
+       y = "Log of CO2(ppm)") +
+  geom_hline(yintercept = log(420), linetype = "dashed", color = "green") +
+  geom_hline(yintercept = log(500), linetype = "dashed", color = "green") 
+
+linear.forecast.plot <- autoplot(mod.linear_season.forecast, series = "Linear Season", 
+                                 prediction.interval = TRUE, fill = "orange", show.legend = TRUE) +
+  labs(title = "Linear Model Forecasts", 
+       x = "Year and Month", 
+       y = "Linear Forecasted CO2(ppm)") +
+  geom_hline(yintercept = 420, linetype = "dashed", color = "orange") +
+  geom_hline(yintercept = 500, linetype = "dashed", color = "orange") 
+
+# Combine the plots
+final_plot <- arima.forecast.plot + quad.forecast.plot + linear.forecast.plot
+
+# Show the final plot
+final_plot
+ggsave("final_plot.png", plot = final_plot, width = 7, height = 4)
+```
+```{r Calculate the difference between 420, include = F}
+# Calculate the difference between 420
+co2_fit.forecast$co2_420 <- co2_fit.forecast$.mean - 420
+
+# Find the month year with minimum difference to 420
+df_420 <- co2_fit.forecast %>% slice_min(abs(co2_420))
+df_420
+df_420$co2
+
+# Extract the mean and standard deviation from the distribution
+mean <- df_420$.mean
+sd <- sqrt(242)
+
+# Calculate the 95% confidence interval
+lower_bound <- qnorm(0.025, mean, sd)  # 0.025 corresponds to the lower tail of the distribution
+upper_bound <- qnorm(0.975, mean, sd)  # 0.975 corresponds to the upper tail of the distribution
+
+# Print the confidence interval
+print(c(lower_bound, upper_bound))
+```
+```{r Calculate the difference between 500, include = F}
+# Calculate the difference between 500
+co2_fit.forecast$co2_500 <- co2_fit.forecast$.mean - 500
+
+# Find the month year with minimum difference to 500
+df_500 <- co2_fit.forecast %>% slice_min(abs(co2_500))
+
+df_500
+df_500$co2
+
+# Extract the mean and standard deviation from the distribution
+mean <- df_500$.mean
+sd <- sqrt(2462)
+
+# Calculate the 95% confidence interval
+lower_bound_500 <- qnorm(0.025, mean, sd)  # 0.025 corresponds to the lower tail of the distribution
+upper_bound_500 <- qnorm(0.975, mean, sd)  # 0.975 corresponds to the upper tail of the distribution
+
+# Print the confidence interval
+print(c(lower_bound_500, upper_bound_500))
+```
+```{r Final Model Forecast for 2100, include = F}
+co2_fit.forecast_2100 <- co2_fit.forecast[co2_fit.forecast$time_index >= as.Date("2100-01-01"), ]
+
+# Plot the forecasting results
+forecasting.results <- co2_fit.forecast_2100 %>%
+  autoplot()+ labs(title = "Final Model Forecast for 2100")
+ggsave("forecasting.results.png", plot = forecasting.results, width = 7, height = 4)
+# Range of point prediction
+range(co2_fit.forecast_2100$.mean)
+```
+
+\begin{center} \textit{D. Comparing models forecasts against realized CO2} \end{center}
+
+In comparing the linear model forecasts against realized CO2, the actual monthly mean CO2 levels has a systematic increasing trend and regular fluctuations in fixed time period, indicating consistent growth and seasonality. The decomposition further proved its non-stationarity, increasing trend, and seasonality. In previous sections, we used linear model with quadratic term and season to capture the increasing rate and seasonality and predict the CO2 till 2022 Dec. The figure shows that the peak of 2020 is slightly below 6.05, while the peak of 2022 is over 6.05. In actual data plot, we can found that the peak of 2020 is around 6.03, while th peak of 2022 still below 6.05. Therefore, we can say the linear model was able to predict the seasonality in the predicted data but the systematic increasing trend was slightly over estimated, indicating higher slope coefficient in predicted trend than the actual trend of realized atmospheric CO2 data.  
+
+The ARIMA model we obtained in previous sections predicts that the CO2 will have a steady increasing trend with period fluctuation. However, contrary to linear model, the ARIMA model seems underestimate the CO2 increase by predicting the the peak of 2020 is slightly over 400, while the peak of 2022 is around 405. In actual data plot, we can found that the peak of 2020 is much over 410 even approaching 420 and the peak of 2022 is over 420. Therefore, we can say the ARIMA model was able to predict the seasonality and increasing trend in the predicted data but the trend is underestimate, indicating lower slope coefficient in predicted trend than the actual trend of realized atmospheric CO2 data.  
+
+```{r fig16, echo=FALSE, out.width = '50%', fig.show = 'hold', fig.pos='H', fig.cap="Linear and ARIMA Model Forecast and Plot of Seasonally Adjusted CO2 and Non-seasonally Adjusted CO2"}
+knitr::include_graphics("linear.forec.comp.png")
+knitr::include_graphics("arima.forec.comp.png")
+```
+
+Then we are able to evaluate the performance of 1997 linear and ARIMA models from earlier. In linear model, the first time that CO2 cross 420 ppm is 2022 Jan, while in actual data it is 2022 Apr. The ARIMA model did not predict CO2 could cross 420 ppm in 2022. Apparently, linear model is more close to the actual data. The time series plots are used to show the difference between actual minus predicted data. Consistent with above discussion, the linear model tends to over estimate the CO2 and the degree of overestimation tends to increase with the time evolve, while ARIMA model tends to underestimate the CO2 and the degree of underestimation tends to increase with the time evolve. However, ARIMA model has more smooth and consistent underestimation in residual, while linear model's prediction has bigger fluctuation in residual. From the histogram, we can tell that most residual in linear model lie between [-3,-1], while ARIMA model has a bigger range, [0.5,6]. Finally, we use accuracy function to test the gap between predicted and observed values. The results show that linear model has smaller gap (RMSE=2.14) than ARIMA model(RMSE=8.09), indicating better model fit.
+*Need to choose which plot or output to place here from forecast evaluation *
+
+```{r linear trend forecast,fig.width = 12, fig.height = 4, fig.align = 'center', warning = F, echo=FALSE, include= F}
 actual<-monthly_mean_co2_df %>%
   pivot_longer(cols = c(co2, sa_co2), 
                names_to = "variable", values_to = "value") %>%
@@ -808,16 +826,13 @@ linear_predict<-mod.quad_season %>%
   forecast(new_data = mod.quad_season.predictions) %>%
   autoplot(co2_df) + labs(title = "Linear time trend model Forecast")
 
-linear_predict | actual 
+linear.forec.comp <- linear_predict | actual 
+ggsave("linear.forec.comp.png", plot = linear.forec.comp, width = 7, height = 4)
 ```
-
-## Compare ARIMA models forecasts against realized CO2  
-The ARIMA model we obtained in previous sections predicts that the CO2 will have a steady increasing trend with period fluctuation. However, contrary to linear model, the ARIMA model seems underestimate the CO2 increase by predicting the the peak of 2020 is slightly over 400, while the peak of 2022 is around 405. In actual data plot, we can found that the peak of 2020 is much over 410 even approaching 420 and the peak of 2022 is over 420. Therefore, we can say the ARIMA model was able to predict the seasonality and increasing trend in the predicted data but the trend is underestiamte, indicating lower slope coefficient in predicted trend than the actual trend of realized atmospheric CO2 data.  
-
-```{r forecast, fig.width = 12, fig.height = 4, fig.align = 'center', warning = F, echo=FALSE}
+```{r ARIMA forecast2, fig.width = 12, fig.height = 4, fig.align = 'center', warning = F, include = F}
 ARIMA<-co2_fit%>%
   forecast(h=300)%>%
-  autoplot()+ labs(title = "Figure 11 ARIMA Model Forecast")
+  autoplot()+ labs(title = "ARIMA Model Forecast")
 
 actual<-monthly_mean_co2_df %>%
   pivot_longer(cols = c(co2, sa_co2), 
@@ -830,13 +845,11 @@ actual<-monthly_mean_co2_df %>%
   scale_color_manual(values = c("blue", "red"), 
                      labels = c("Non-seasonally Adjusted", "Seasonally Adjusted"))
 
-ARIMA | actual 
+arima.forec.comp <- (ARIMA | actual )
+
+ggsave("arima.forec.comp.png", plot = arima.forec.comp, width = 7, height = 4)
 ```
-
-## Evaluate the performance of 1997 linear and ARIMA models 
-In linear model, the first time that CO2 cross 420 ppm is 2022 Jan, while in actual data it is 2022 Apr. The ARIMA model did not predict CO2 could cross 420 ppm in 2022. Apparently, linear model is more close to the actual data. The time series plots are used to show the difference between actual minus predicted data. Consistent with above discussion, the linear model tends to over estimate the CO2 and the degree of overestimation tends to increase with the time evolve, while ARIMA model tends to underestimate the CO2 and the degree of underestimation tends to increase with the time evolve. However, ARIMA model has more smooth and consistent underestimation in residual, while linear model's prediction has bigger fluctuation in residual. From the histogram, we can tell that most residual in linear model lie between [-3,-1], while ARIMA model has a bigger range, [0.5,6]. Finally, we use accuracy function to test the gap between predicted and observed values. The results show that linear model has smaller gap (RMSE=2.14) than ARIMA model(RMSE=8.09), indicating better model fit.
-
-```{r forecast evaluation,fig.width = 12, fig.height = 4, fig.align = 'center', warning = F, echo=F}
+```{r forecast evaluation,fig.width = 12, fig.height = 4, fig.align = 'center', warning = F, include = F}
 linear_predict_df<-mod.quad_season %>%
   forecast(new_data = mod.quad_season.predictions)%>%
   mutate(linear_co2=exp(.mean))
@@ -880,7 +893,7 @@ hist_linear_diff <- comps2 %>%
   ggplot() +
   geom_histogram(aes(x = linear_diff)) +
   labs(
-    title = "Linear Model CO_2 Differfence Histogram",
+    title = "Linear Model CO_2 Difference Histogram",
     x = "Difference"
   ) +
   theme(legend.position = c(.2, .8))
@@ -889,7 +902,7 @@ hist_arima_diff <- comps2 %>%
   ggplot() +
   geom_histogram(aes(x = arima_diff)) +
   labs(
-    title = "ARIMA Model CO_2 Differfence Histogram",
+    title = "ARIMA Model CO_2 Difference Histogram",
     x = "Difference"
   ) +
   theme(legend.position = c(.2, .8))
@@ -909,12 +922,13 @@ data.frame(Model=c("Linear Model Accurarcy","ARIMA Model Accurarcy"),
 
 ```
 
+\begin{center} \textit{E. Training Models on Present Data} \end{center}
 
-## (4 points) Task 5b: Train best models on present data
+To train the models on present data, the weekly NOAA data was seasonally adjusted and split into both seasonally-adjusted (SA) and non-seasonally-adjusted (NSA) series into training and test sets, using the last two years of observations as the test sets. For both SA and NSA series, ARIMA models were fitted. Based on the EDA of first differencing data, we can observe that the mean of the first differenced $CO_2$ is fluctuated around zero. Thus, we set intercept to be equal 0 and parameter D to range from 1 to 2. The model with minimum BIC is `ARIMA(1,1,1)(2,1,1)[12]`. Although only `ma1` and `sma1` terms are sarcastically significant, based on the time plot and ACF, PACF plots in EDA section, we can observe strong and  persistent non-seasonal and seasonal trend. The residual plots and KPSS test result suggest that the residuals of the model is stationary.
 
-Seasonally adjust the weekly NOAA data, and split both seasonally-adjusted (SA) and non-seasonally-adjusted (NSA) series into training and test sets, using the last two years of observations as the test sets. For both SA and NSA series, fit ARIMA models using all appropriate steps. Measure and discuss how your models perform in-sample and (psuedo-) out-of-sample, comparing candidate models and explaining your choice. In addition, fit a polynomial time-trend model to the seasonally-adjusted series and compare its performance to that of your ARIMA model.
+*Choosing which plots/outputs to show from the ARIMA Model*
 
-```{r EDA - plots, monthly_mean_co2_df, non-seasonally adjust, warning = F}
+```{r EDA - plots, monthly_mean_co2_df, non-seasonally adjust, warning = F, include= F}
 # Time plot
 timeplot_co2_m.p <- monthly_mean_co2_df %>%
   ggplot() +
@@ -950,7 +964,7 @@ pacf_co2_m.p <- monthly_mean_co2_df %>%
 (timeplot_co2_m.p + hist_co2_m.p) /
   (acf_co2_m.p + pacf_co2_m.p)
 ```
-```{r EDA - plots, monthly_mean_co2_df, seasonally adjust, warning = F}
+```{r EDA - plots, monthly_mean_co2_df, seasonally adjust, warning = F, include = F}
 # Time plot
 timeplot_co2_m_sa.p <- monthly_mean_co2_df %>%
   ggplot() +
@@ -986,15 +1000,13 @@ pacf_co2_m_sa.p <- monthly_mean_co2_df %>%
 (timeplot_co2_m_sa.p + hist_co2_m_sa.p) /
   (acf_co2_m_sa.p + pacf_co2_m_sa.p)
 ```
-```{r, difference of sa_co2}
+```{r, difference of sa_co2, include = F}
 monthly_mean_co2_df %>%
   ACF(y=difference(sa_co2), type = "partial") %>%
   autoplot() +
   labs(y = "PACF")
 ```
-
-
-```{r, ARIMA Model}
+```{r, ARIMA Model, echo = F}
 # Split original monthly_mean_co2 dataframe to training and testing set
 train_monthly <- subset(monthly_mean_co2_df, year < 2023)
 test_monthly <- subset(monthly_mean_co2_df, year >= 2023)
@@ -1014,11 +1026,7 @@ model_fit1 %>% resid() %>%
   as.ts()%>%
   Box.test(., lag=10, type="Ljung-Box")
 ```
-Based on the EDA of first differencing data, we can observe that the mean of the first differenced $CO_2$ is fluctuated around zero. Thus, we set intercept to be equal 0 and parameter D to range from 1 to 2. The model with minimum BIC is `ARIMA(1,1,1)(2,1,1)[12]`. Although only `ma1` and `sma1` terms are sarcastically significant, based on the time plot and ACF, PACF plots in EDA section, we can observe strong and  persistent non-seasonal and seasonal trend.
-
-The residual plots and KPSS test result suggest that the residuals of the model is stationary.
-
-```{r, forecast for non-seasonally adjusted series}
+```{r, forecast for non-seasonally adjusted series, echo = F}
 model.forecasts1 <- forecast(model_fit1, h=nrow(test_monthly))
 
 # plot
@@ -1038,7 +1046,7 @@ acc1
 ```
 
 COMMENT: compare to models without PDQ termss
-```{r}
+```{r, echo = F}
 ##### Seasonally adjusted series #####
 model_fit2 <- train_monthly %>%
   model(model2 = ARIMA(sa_co2 ~ 0 + pdq(0:3,0:2,0:3) + PDQ(0:3,0:1,0:3, period=12), 
@@ -1047,7 +1055,7 @@ model_fit2 %>% report()
 model_fit2 %>% coef()
 ```
 
-```{r, forecast for seasonally adjusted series1}
+```{r, forecast for seasonally adjusted series1, echo = F}
 model.forecasts2 <- forecast(model_fit2, h=nrow(test_monthly))
 
 # plot
@@ -1065,9 +1073,7 @@ forecast.fit2 <- model.forecasts2$.mean
 acc2 <- data.frame(accuracy(forecast.fit2, test_monthly$sa_co2))
 acc2
 ```
-
-
-```{r, Polynomial Model}
+```{r, Polynomial Model, echo = F}
 
 # Iterate through different Polynomial models
 ##### Seasonally adjusted series #####
@@ -1087,7 +1093,7 @@ fit_acc1
 fit_acc2
 ```
 The training accuracy of polynomial model with order 2 is similar to that of polynomial model with order 3.
-```{r, forecast for seasonally adjusted series}
+```{r, forecast for seasonally adjusted series, echo = F}
 model.forecasts.poly1 <- forecast(mod.quad_sa1, h=nrow(test_monthly))
 
 # plot
@@ -1106,31 +1112,33 @@ acc1.p <- data.frame(accuracy(forecast.fit.poly1, test_monthly$sa_co2))
 acc1.p 
 ```
 Polynomial model generates more accurate forecasting results for seasonally adjusted $CO_2$ trend compared to ARIMA.
-```{r}
+```{r, echo = F}
 acc_df <- rbind(acc1, acc2, acc1.p)
 row.names(acc_df) <- c("NSA ARIMA", "SA ARIMA", 
                   "SA Polynomial")
 acc_df
 ```
 
-## (3 points) Task Part 6b: How bad could it get?
-
-With the non-seasonally adjusted data series, generate predictions for when atmospheric CO2 is expected to be at 420 ppm and 500 ppm levels for the first and final times (consider prediction intervals as well as point estimates in your answer). Generate a prediction for atmospheric CO2 levels in the year 2122. How confident are you that these will be accurate predictions?
+\begin{center} \textit{F. Atmospheric CO2 Predictions} \end{center}
 
 Based on the non-seasonally adjusted data series, we used the non-seasonally adjusted ARIMA model to generate predictions for atmospheric CO2 levels until the year 2122.
 
-```{r}
+```{r fig17, echo=FALSE, out.width = '70%', fig.show = 'hold', fig.pos='H', fig.cap="Final Model Forecast"}
+knitr::include_graphics("fin.mod.forecast.png")
+```
+
+Using a 95% confidence intervals we noted the first and last years that we would expect the atmospheric CO2 levels to be at 420 ppm and 500 ppm. With 95% confidence, we expect atmospheric CO2 levels to first exceed 420 ppm in February 2023, with the upper confidence interval remaining below this threshold until October 2023. For the 500 ppm mark, the lower confidence interval is projected to surpass this level in April 2074, while the upper confidence interval is expected to remain below 500 ppm until November 2049.
+
+```{r 6B forecast plot, include = F}
 # Generate forecast till end of 2100
 NSAfit.forecast <- model_fit1 %>% forecast(h=1200)
 
 # Plot the forecasting results
-NSAfit.forecast %>%
-  autoplot()+ labs(title = "Figure 13 Final Model Forecast")
+fin.mod.forecast <- NSAfit.forecast %>%
+  autoplot()+ labs(title = "Final Model Forecast")
+ggsave("fin.mod.forecast.png", plot = fin.mod.forecast, width = 7, height = 4)
 ```
-
-Using a 95% confidence intervals we noted the first and last years that we would expect the atmospheric CO2 levels to be at 420 ppm and 500 ppm. The following month and years were calculated:
-
-```{r}
+```{r 6B confidence intervals, include= F}
 confidence_intervals <- NSAfit.forecast %>%
   summarise(.mean, .lower = quantile(co2, 0.025), .upper = quantile(co2, 0.975))
 
@@ -1162,3 +1170,6 @@ print(paste("With 95% confidence, the last month and year where upper confidence
 print(paste("With 95% confidence, the first month and year where lower confidence interval exceeds 500ppm:", first_above_500_monthyear))
 print(paste("With 95% confidence, the last month and year where upper confidence interval subceeds 500ppm:", last_below_500_monthyear))
 ```
+
+
+\begin{center} \textbf{IV. Conclusion} \end{center}
