@@ -725,11 +725,13 @@ knitr::include_graphics("arima.mod.forecast.png")
 knitr::include_graphics("final_plot.png")
 ```
 
-We calculate the difference between the point prediction (`.mean`) and 420, and extrac the row with lowest absolute difference. In this way, we can obtain the month and year of which $CO_2$ is closest to 420. Based on this approach, we found that in December 2033, the point prediction of $CO_2$ level is closest to 420, with variance equal to 242. We also calculate the 95% confidence interval, and we are 95% confident that the true $CO_2$ value is between 389.5 to 450.5.
+For the linear, quadratic, and ARIMA models, we calculate the difference between the point prediction (.mean) and the value 420. We then extract the row with the lowest absolute difference. This approach enables us to determine the month and year in which the $CO_2$ level is closest to 420. Using this method, for the ARIMA forecasting results, we found that in December 2033, the point prediction of the $CO_2$ level is closest to 420, with a variance equal to 242. We also calculate the 95% confidence interval, and we are 95% confident that the true $CO_2$ value is between 389.5 to 450.5. For the linear model forecasting results, we found that in August 2042, the linear model's point prediction of the $CO_2$ level is closest to 420, with a variance equal to 2.9. The 95% confidence interval suggests that we are 95% confident that the true $CO_2$ value is between 417.1 to 422.6.
 
-We calculate the difference between the point prediction (`.mean`) and 500, and extract the row with lowest absolute difference. In this way, we can obtain the month and year of which $CO_2$ is closest to 500. Based on this approach, we found that in June 2083, the point prediction of $CO_2$ level is closest to 420, with variance equal to 242. We also calculate the 95% confidence interval, and we are 95% confident that the true $CO_2$ value is between 402.8 to 597.3.
+Similarly, for the quadratic model forecasting results, we found that in May 2020, the quadratic model's point prediction of the $CO_2$ level is closest to 420, with a variance equal to 1.3. The 95% confidence interval indicates that we are 95% confident that the true $CO_2$ value is between 418.0 to 422.5. We repeat the same analysis for the linear, quadratic, and ARIMA models with the target value of 500. Using this approach, we found that in June 2083, the ARIMA's point prediction of the $CO_2$ level is closest to 500, with a variance equal to 2462. The 95% confidence interval suggests that we are 95% confident that the true $CO_2$ value is between 402.8 to 597.3. In May 2100, the Linear model's point prediction of the $CO_2$ level is closest to 500, with a variance equal to 3.4. The 95% confidence interval indicates that we are 95% confident that the true $CO_2$ value is between 497 to 502.5. In September 2046, the quadratic model's point prediction of the $CO_2$ level is closest to 500, with a variance equal to 1.1. The 95% confidence interval suggests that we are 95% confident that the true $CO_2$ value is between 498.0 and 502.1.
 
-The point prediction of $CO_2$ levels in year 2100 ranges from 521.1 to 517.2. Throughout the entire year of 2100, we are 95% confident that the $CO_2$ levels fall within then range of 400 to 600.
+Based on the analysis, we observe that the quadratic model predicts a faster increase in $CO_2$ levels compared to the ARIMA and linear models. Additionally, the confidence interval of the ARIMA model is wider than that of the linear and quadratic models, indicating that its predictions may be less precise over longer time frames. The quadratic model's confidence interval is the narrowest among the three models, suggesting that it may provide the most accurate predictions of $CO_2$ levels.
+
+In the year 2100, the ARIMA's point prediction of $CO_2$ levels ranges from 521.1 to 517.2. The linear model's point prediction of $CO_2$ levels ranges from 494.1 to 499.8, while the quadratic model's point prediction ranges from 847.6 to 859.7. Throughout the year 2100, based on the ARIMA model, we are 95% confident that the $CO_2$ levels fall within an approximate range of 400 to 600, while some fluctuations are observed in the predictions of the linear and quadratic models.
 
 ```{r fig14, echo=FALSE, out.width = '60%', fig.show = 'hold', fig.pos='H', fig.cap="Final Model Forecast for 2100"}
 knitr::include_graphics("forecasting.results.png")
@@ -780,7 +782,7 @@ ggsave("final_plot.png", plot = final_plot, width = 7, height = 4)
 ```
 
 ```{r Calculate the difference between 420, include = F}
-# Calculate the difference between 420
+# ARIMA: Calculate the difference between 420
 co2_fit.forecast$co2_420 <- co2_fit.forecast$.mean - 420
 
 # Find the month year with minimum difference to 420
@@ -798,6 +800,48 @@ upper_bound <- qnorm(0.975, mean, sd)  # 0.975 corresponds to the upper tail of 
 
 # Print the confidence interval
 print(c(lower_bound, upper_bound))
+
+
+
+# Linear: Calculate the difference between 420
+mod.linear_season.forecast$co2_420 <- mod.linear_season.forecast$.mean - 420
+
+# Find the month year with minimum difference to 420
+df_420_l <- mod.linear_season.forecast %>% slice_min(abs(co2_420))
+df_420_l
+df_420_l$co2
+
+# Extract the mean and standard deviation from the distribution
+mean_l <- df_420_l$.mean
+sd_l <- sqrt(3.4)
+
+# Calculate the 95% confidence interval
+lower_bound_l <- qnorm(0.025, mean_l, sd_l)  # 0.025 corresponds to the lower tail of the distribution
+upper_bound_l <- qnorm(0.975, mean_l, sd_l)  # 0.975 corresponds to the upper tail of the distribution
+
+# Print the confidence interval
+print(c(lower_bound_l, upper_bound_l))
+
+
+
+# Quadratic: Calculate the difference between 420
+mod.quad_season.forecast$co2_420 <- exp(mod.quad_season.forecast$.mean) - 420
+
+# Find the month year with minimum difference to 420
+df_420_q <- mod.quad_season.forecast %>% slice_min(abs(co2_420))
+df_420_q
+df_420_q$co2
+
+# Extract the mean and standard deviation from the distribution
+mean_q <- exp(df_420_q$.mean)
+sd_q <- sqrt(exp(0.2563456))
+
+# Calculate the 95% confidence interval
+lower_bound_q <- qnorm(0.025, mean_q, sd_q)  # 0.025 corresponds to the lower tail of the distribution
+upper_bound_q <- qnorm(0.975, mean_q, sd_q)  # 0.975 corresponds to the upper tail of the distribution
+
+# Print the confidence interval
+print(c(lower_bound_q,upper_bound_q))
 ```
 
 ```{r Calculate the difference between 500, include = F}
@@ -820,17 +864,69 @@ upper_bound_500 <- qnorm(0.975, mean, sd)  # 0.975 corresponds to the upper tail
 
 # Print the confidence interval
 print(c(lower_bound_500, upper_bound_500))
+
+
+
+# Linear: Calculate the difference between 420
+mod.linear_season.forecast$co2_500 <- mod.linear_season.forecast$.mean - 500
+
+# Find the month year with minimum difference to 420
+df_500_l <- mod.linear_season.forecast %>% slice_min(abs(co2_500))
+df_500_l
+df_500_l$co2
+
+# Extract the mean and standard deviation from the distribution
+mean_l <- df_500_l$.mean
+sd_l <- sqrt(2.0)
+
+# Calculate the 95% confidence interval
+lower_bound_l <- qnorm(0.025, mean_l, sd_l)  # 0.025 corresponds to the lower tail of the distribution
+upper_bound_l <- qnorm(0.975, mean_l, sd_l)  # 0.975 corresponds to the upper tail of the distribution
+
+# Print the confidence interval
+print(c(lower_bound_l, upper_bound_l))
+
+
+
+# Quadratic: Calculate the difference between 420
+mod.quad_season.forecast$co2_500 <- exp(mod.quad_season.forecast$.mean) - 500
+
+# Find the month year with minimum difference to 420
+df_500_q <- mod.quad_season.forecast %>% slice_min(abs(co2_500))
+df_500_q
+df_500_q$co2
+
+# Extract the mean and standard deviation from the distribution
+mean_q <- exp(df_500_q$.mean)
+sd_q <- sqrt(exp(0.05090228))
+
+# Calculate the 95% confidence interval
+lower_bound_q <- qnorm(0.025, mean_q, sd_q)  # 0.025 corresponds to the lower tail of the distribution
+upper_bound_q <- qnorm(0.975, mean_q, sd_q)  # 0.975 corresponds to the upper tail of the distribution
+
+# Print the confidence interval
+print(c(lower_bound_q,upper_bound_q))
 ```
 
 ```{r Final Model Forecast for 2100, include = F}
 co2_fit.forecast_2100 <- co2_fit.forecast[co2_fit.forecast$time_index >= as.Date("2100-01-01"), ]
+mod.linear_season.forecast_2100 <- mod.linear_season.forecast[mod.linear_season.forecast$time_index >= as.Date("2100-01-01"), ]
+mod.quad_season.forecast_2100 <- mod.quad_season.forecast[mod.quad_season.forecast$time_index >= as.Date("2100-01-01"), ]
 
 # Plot the forecasting results
-forecasting.results <- co2_fit.forecast_2100 %>%
-  autoplot()+ labs(title = "Final Model Forecast for 2100")
+forecasting.results1 <- co2_fit.forecast_2100 %>%
+  autoplot()+ labs(title = "ARIMA Model Forecast for 2100")
+forecasting.results2 <- mod.quad_season.forecast_2100 %>%
+  autoplot(fill = "green", show.legend = TRUE)+ labs(title = "Quadratic Model Forecast for 2100")
+forecasting.results3 <- mod.linear_season.forecast_2100 %>%
+  autoplot(fill = "orange", show.legend = TRUE)+ labs(title = "Linear Model Forecast for 2100")
+forecasting.results <- forecasting.results1 + forecasting.results2 + forecasting.results3
+forecasting.results
 ggsave("forecasting.results.png", plot = forecasting.results, width = 7, height = 4)
 # Range of point prediction
 range(co2_fit.forecast_2100$.mean)
+range(mod.linear_season.forecast_2100$.mean)
+exp(range(mod.quad_season.forecast_2100$.mean))
 ```
 
 ```{=tex}
@@ -953,11 +1049,7 @@ knitr::include_graphics("models.evaluation.png")
 ```{=tex}
 \begin{center} \textit{E. Training Models on Present Data} \end{center}
 ```
-To train the models on present data, the weekly NOAA data was seasonally adjusted and split into both seasonally-adjusted (SA) and non-seasonally-adjusted (NSA) series into training and test sets, using the last two years of observations as the test sets. For both SA and NSA series, ARIMA models were fitted. Based on the EDA of first differencing data, we observed that the mean of the first differenced $CO_2$ is fluctuated around zero. Thus, we set intercept to be equal 0 and parameter D to range from 1 to 2. The model with minimum BIC is `ARIMA(1,1,1)(2,1,1)[12]`. Although only `ma1` and `sma1` terms are sarcastically significant, based on the time plot and ACF, PACF plots in EDA section, we can observe strong and persistent non-seasonal and seasonal trend. The residual plots and KPSS test result suggest that the residuals of the model is stationary.
-
-```{r fig18, echo=FALSE, out.width = '50%', fig.show = 'hold', fig.pos='H', fig.cap=“Model Residuals”}
-knitr::include_graphics("model_fit1.plot.png")
-```
+To train the models on present data, the weekly NOAA data was seasonally adjusted and split into both seasonally-adjusted (SA) and non-seasonally-adjusted (NSA) series into training and test sets, using the last two years of observations as the test sets. For both SA and NSA series, ARIMA models were fitted. Based on the EDA of first differencing data, we can observe that the mean of the first differenced $CO_2$ is fluctuated around zero. Thus, we set intercept to be equal 0 and parameter D to range from 1 to 2. The model with minimum BIC is `ARIMA(1,1,1)(2,1,1)[12]`. Although only `ma1` and `sma1` terms are sarcastically significant, based on the time plot and ACF, PACF plots in EDA section, we can observe strong and persistent non-seasonal and seasonal trend. The residual plots and KPSS test result suggest that the residuals of the model is stationary.
 
 *Choosing which plots/outputs to show from the ARIMA Model*
 
@@ -1042,7 +1134,7 @@ monthly_mean_co2_df %>%
   labs(y = "PACF")
 ```
 
-```{r, ARIMA Model, include = F, echo = F}
+```{r, ARIMA Model, echo = F}
 # Split original monthly_mean_co2 dataframe to training and testing set
 train_monthly <- subset(monthly_mean_co2_df, year < 2023)
 test_monthly <- subset(monthly_mean_co2_df, year >= 2023)
@@ -1057,9 +1149,7 @@ model_fit1 %>% report()
 model_fit1 %>% coef()
 
 # Residual stationary diagnosis
-model_fit1.plot <- model_fit1 %>% gg_tsresiduals()+ labs(title = "Model Residual")
-ggsave("model_fit1.plot.png", plot = model_fit1.plot, width = 7, height = 4)
-
+model_fit1 %>% gg_tsresiduals()+ labs(title = "Model Residual")
 model_fit1 %>% resid() %>%
   as.ts()%>%
   Box.test(., lag=10, type="Ljung-Box")
@@ -1226,7 +1316,7 @@ forecast_df<- data.frame(
 )
 ```
 
-```{r, include=T, echo=F}
+```{r, include=F, echo=F}
 stargazer(forecast_df, type = "text", title = "Forecasted Year and Month CO2 Levels at 420ppm and 500ppm 95% confidence", summary = FALSE)
 ```
 
